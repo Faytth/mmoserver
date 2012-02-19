@@ -1,7 +1,7 @@
 package net.handlers;
 
+import net.AbstractPacketHandler;
 import client.MMOClient;
-import server.AbstractPacketHandler;
 import tools.input.SeekableLittleEndianAccessor;
 
 public class LogonHandler extends AbstractPacketHandler {

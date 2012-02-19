@@ -7,7 +7,9 @@ package net;
  *
  */
 public enum RecvOpcode {
-    LOGON(0x00);
+    PONG(0x00),
+    LOGON(0x01),
+    CREDS(0x02);
     private int code = 0;
     
     private RecvOpcode(int code) {

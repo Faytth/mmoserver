@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import net.MMOServerHandler;
+import net.PacketProcessor;
 import net.mina.MMOCodecFactory;
 
 import org.apache.mina.core.filterchain.IoFilter;

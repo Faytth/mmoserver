@@ -10,8 +10,6 @@ import client.MMOClient;
 
 import constants.ServerConstants;
 
-import server.PacketHandler;
-import server.PacketProcessor;
 import tools.PrintError;
 import tools.input.ByteArrayByteStream;
 import tools.input.GenericSeekableLittleEndianAccessor;

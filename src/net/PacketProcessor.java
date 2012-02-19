@@ -1,9 +1,8 @@
-package server;
+package net;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import net.RecvOpcode;
 import net.handlers.LogonHandler;
 
 /**

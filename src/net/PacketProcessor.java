@@ -3,7 +3,9 @@ package net;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.handlers.LogonHandler;
+import org.unallied.mmocraft.net.SendOpcode;
+
+import net.handlers.*;
 
 /**
  * This class is used to perform callbacks to specific packet handlers
@@ -16,7 +18,7 @@ import net.handlers.LogonHandler;
  */
 public class PacketProcessor {
     
-    private Map<Short, PacketHandler> handlers = new HashMap<Short, PacketHandler>();
+    private Map<Short, ServerPacketHandler> handlers = new HashMap<Short, ServerPacketHandler>();
     
     private PacketProcessor() {
         init();
@@ -39,17 +41,17 @@ public class PacketProcessor {
      * @param packetOpcode The opcode to return the handler for
      * @return handler for opcode if found; else null
      */
-    public PacketHandler getHandler(short packetOpcode) {
+    public ServerPacketHandler getHandler(short packetOpcode) {
         return handlers.get(packetOpcode);
     }
     
     /**
      * Registers a handler with the processor.  Opcodes must be unique
-     * @param recvOpcode Unique opcode that identifies a handler
+     * @param opcode Unique opcode that identifies a handler
      * @param handler A handler that receives events when this opcode is received
      */
-    public void registerHandler(RecvOpcode recvOpcode, PacketHandler handler) {
-        handlers.put((short)recvOpcode.getValue(), handler);
+    public void registerHandler(SendOpcode opcode, AbstractServerPacketHandler handler) {
+        handlers.put((short)opcode.getValue(), handler);
     }
     
     /**
@@ -58,6 +60,10 @@ public class PacketProcessor {
     public void reset() {
         handlers.clear();
         
-        registerHandler(RecvOpcode.LOGON, new LogonHandler());
+        registerHandler(SendOpcode.LOGON, new LogonHandler());
+        registerHandler(SendOpcode.CREDS, new CredsHandler());
+        registerHandler(SendOpcode.CHUNK, new ChunkHandler());
+        registerHandler(SendOpcode.MOVEMENT, new MovementHandler());
+        registerHandler(SendOpcode.REGISTER, new RegisterHandler());
     }
 }

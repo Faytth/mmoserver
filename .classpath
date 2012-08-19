@@ -4,6 +4,27 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/mina-core.jar" sourcepath="3rd party/MINA/src"/>
 	<classpathentry kind="lib" path="lib/slf4j-api.jar"/>
-	<classpathentry kind="lib" path="lib/slf4j-jdk14.jar"/>
+	<classpathentry kind="lib" path="lib/mysql-connector-java-bin.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="http://docs.oracle.com/javase/1.4.2/docs/api/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/libnoiseforjava.jar" sourcepath="/libnoiseforjava/src"/>
+	<classpathentry kind="lib" path="lib/jogg-0.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/jorbis-0.0.15.jar"/>
+	<classpathentry kind="lib" path="lib/lwjgl.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="http://lwjgl.org/javadoc/"/>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="mmoserver/lib"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/phys2d.jar"/>
+	<classpathentry kind="lib" path="lib/slick.jar"/>
+	<classpathentry kind="lib" path="lib/jinput.jar"/>
+	<classpathentry kind="lib" path="lib/lwjgl_util_applet.jar"/>
+	<classpathentry kind="lib" path="lib/lwjgl_util.jar"/>
+	<classpathentry kind="lib" path="lib/windows_natives.jar"/>
+	<classpathentry kind="lib" path="/mmocraft/src"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/mmocraft"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -1,8 +1,5 @@
 package client;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 
 import net.PacketCreator;
@@ -10,9 +7,6 @@ import net.sessions.LoginSession;
 
 import org.apache.mina.core.session.IoSession;
 import org.unallied.mmocraft.net.Packet;
-import org.unallied.mmocraft.tools.DatabaseConnection;
-
-import database.MySQL;
 
 import server.Server;
 import server.ServerPlayer;
@@ -56,23 +50,7 @@ public class Client {
     }
     
     public void loadPlayer() {
-        PreparedStatement ps;
-        try {
-            ps = DatabaseConnection.getConnection().prepareStatement(
-                    "SELECT * " + 
-                    "FROM account a, character c " +
-                    "WHERE c.account_id = a.account_id AND " +
-                    "    a.account_id = ?");
-            ps.setInt(1, getAccountId());
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                player = new ServerPlayer();
-            }
-            rs.close();
-            ps.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        Server.getInstance().getDatabase().getPlayer(this, this.getAccountName());
     }
     
     public boolean isLoggedIn() {
@@ -124,7 +102,7 @@ public class Client {
             if (player != null && isLoggedIn()) {
                 selectiveBroadcast(player, PacketCreator.getPlayerDisconnect(player));
                 removePlayer();
-                MySQL.savePlayer(player);
+                Server.getInstance().getDatabase().savePlayer(player);
             }
         } finally {
             player = null;

@@ -1,20 +1,79 @@
 package database;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.unallied.mmocraft.BoundLocation;
+import org.unallied.mmocraft.constants.DatabaseConstants;
 import org.unallied.mmocraft.tools.Authenticator;
-import org.unallied.mmocraft.tools.DatabaseConnection;
 import org.unallied.mmocraft.tools.PrintError;
 
 import server.ServerPlayer;
 
 import client.Client;
 
-public class MySQL {
+public class MySQL implements DatabaseAccessor {
+	
+    private static ThreadLocal<Connection> con = new ThreadLocalConnection();
+    private static String url = DatabaseConstants.DB_URL;
+    private static String user = DatabaseConstants.DB_USER;
+    private static String pass = DatabaseConstants.DB_PASS;
+
+    public static Connection getConnection() {
+        return con.get();
+    }
+
+    public static void release() throws SQLException {
+        con.get().close();
+        con.remove();
+    }
+
+    private static class ThreadLocalConnection extends ThreadLocal<Connection> {
+        static {
+            try {
+                Class.forName("com.mysql.jdbc.Driver");
+            } catch (ClassNotFoundException e) {
+                System.out.println("Could not locate the JDBC mysql driver.");
+            }
+        }
+
+        @Override
+        protected Connection initialValue() {
+            return getConnection();
+        }
+
+        private Connection getConnection() {
+            try {
+                return DriverManager.getConnection(url, user, pass);
+            } catch (SQLException sql) {
+                System.out.println("Could not create a SQL Connection object. Please make sure you've correctly configured the database properties inside constants/ServerConstants.java. MAKE SURE YOU COMPILED!");
+                return null;
+            }
+        }
+
+        @Override
+        public Connection get() {
+            Connection con = super.get();
+            try {
+                if (!con.isClosed()) {
+                    return con;
+                }
+            } catch (SQLException sql) {
+                // Obtain a new connection
+            }
+            System.out.println("Getting connection");
+            con = getConnection();
+            super.set(con);
+            return con;
+        }
+    }
+
+    public MySQL() {
+    	
+    }
     
     /**
      * Attempts to populate the player's data in the client provided.
@@ -22,10 +81,10 @@ public class MySQL {
      * @param username the username to grab from the database
      * @return true on success; false on failure
      */
-    public static boolean getPlayer(Client client, String username) {
+    public boolean getPlayer(Client client, String username) {
         boolean result = true;
         try {
-            Connection conn = DatabaseConnection.getConnection();
+            Connection conn = getConnection();
             PreparedStatement ps = conn.prepareStatement(
                     "SELECT * " +
                     "FROM account " +
@@ -71,8 +130,8 @@ public class MySQL {
      * @param player The player to add to the database
      * @return true on success; false if failed
      */
-    public static boolean savePlayer(ServerPlayer player) {
-        Connection conn = DatabaseConnection.getConnection();
+    public boolean savePlayer(ServerPlayer player) {
+        Connection conn = getConnection();
         try {
             int index = 1;
             PreparedStatement ps = conn.prepareStatement(
@@ -98,11 +157,11 @@ public class MySQL {
      * @param email
      * @return 
      */
-    public static boolean createAccount(String user, String pass, String email) {
+    public boolean createAccount(String user, String pass, String email) {
         // Make sure user, pass, and email are all valid
         if (Authenticator.isValidUser(user) && Authenticator.isValidPass(pass) && 
                 Authenticator.isValidEmail(email)) {
-            Connection conn = DatabaseConnection.getConnection();
+            Connection conn = getConnection();
             try {
                 int index = 1;
                 PreparedStatement ps = conn.prepareStatement(
@@ -119,4 +178,17 @@ public class MySQL {
         }
         return false;
     }
+
+	@Override
+	public void globalLogout() {
+        Connection conn = getConnection();
+        PreparedStatement ps;
+		try {
+			ps = conn.prepareStatement("UPDATE account SET account_loggedin = 0");
+	        ps.executeUpdate();
+	        ps.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
 }

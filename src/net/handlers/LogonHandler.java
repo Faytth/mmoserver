@@ -3,9 +3,10 @@ package net.handlers;
 import java.security.SecureRandom;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 
+import server.Server;
+
 import net.PacketCreator;
 import client.Client;
-import database.MySQL;
 
 public class LogonHandler extends AbstractServerPacketHandler {
 
@@ -24,7 +25,7 @@ public class LogonHandler extends AbstractServerPacketHandler {
         String username = slea.readPrefixedAsciiString();
         client.loginSession.setUsername(username);
         
-        if (MySQL.getPlayer(client, username)) {
+        if (Server.getInstance().getDatabase().getPlayer(client, username)) {
             // Tell client a challenge message
             client.announce(PacketCreator.getChallenge(serverNonce));
         } else {

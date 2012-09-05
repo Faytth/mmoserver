@@ -2,9 +2,6 @@ package server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.Map;
 
 import net.MMOServerHandler;
@@ -18,12 +15,12 @@ import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
-import org.unallied.mmocraft.tools.DatabaseConnection;
-import org.unallied.mmocraft.tools.PrintError;
 
 import client.Client;
 
 import constants.ServerConstants;
+import database.DatabaseAccessor;
+import database.Dummy;
 
 /**
  * The main server.  A server controls all players, monsters, etc. inside of
@@ -36,6 +33,7 @@ import constants.ServerConstants;
 public class Server {
     
     private PlayerPool players = new PlayerPool();
+    private DatabaseAccessor database = new Dummy();
     
     private IoAcceptor acceptor;
         
@@ -67,37 +65,22 @@ public class Server {
      * return until the server terminates.
      */
     private void run() {
+        database.globalLogout();
+
+        acceptor = new NioSocketAcceptor();
+        acceptor.getFilterChain().addLast("codec", (IoFilter) new ProtocolCodecFilter(new MMOCodecFactory()));
+        acceptor.getSessionConfig().setIdleTime(IdleStatus.BOTH_IDLE, ServerConstants.PACKET_TIMEOUT);
+        acceptor.setHandler(new MMOServerHandler(PacketProcessor.getInstance()));
         try {
-            
-            try {
-                Connection conn = DatabaseConnection.getConnection();
-                // Log everyone out!  We're starting the server!
-                PreparedStatement ps = conn.prepareStatement("UPDATE account SET account_loggedin = 0");
-                ps.executeUpdate();
-                ps.close();
-            } catch (NullPointerException e) {
-                PrintError.print(PrintError.EXCEPTION_CAUGHT, e);
-            }
-            
-            acceptor = new NioSocketAcceptor();
-            acceptor.getFilterChain().addLast("codec", (IoFilter) new ProtocolCodecFilter(new MMOCodecFactory()));
-            acceptor.getSessionConfig().setIdleTime(IdleStatus.BOTH_IDLE, ServerConstants.PACKET_TIMEOUT);
-            acceptor.setHandler(new MMOServerHandler(PacketProcessor.getInstance()));
-            try {
-                acceptor.bind(new InetSocketAddress(ServerConstants.SERVER_PORT));
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            
-            // Disable Nagle's algorithm.  We want FAST speed... not efficient transfers
-            ((SocketSessionConfig) acceptor.getSessionConfig()).setTcpNoDelay(true);
-            System.out.println("Server started.");
-        } catch (SQLException e) {
+            acceptor.bind(new InetSocketAddress(ServerConstants.SERVER_PORT));
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
         
+        // Disable Nagle's algorithm.  We want FAST speed... not efficient transfers
+        ((SocketSessionConfig) acceptor.getSessionConfig()).setTcpNoDelay(true);
+        System.out.println("Server started.");       
     }
     
     /**
@@ -164,4 +147,12 @@ public class Server {
             players.addPlayer(player);
         }
     }
+
+    /**
+     * Returns the database that this server is using, such as MySQL.
+     * @return database
+     */
+	public DatabaseAccessor getDatabase() {
+		return database;
+	}
 }

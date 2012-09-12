@@ -65,5 +65,6 @@ public class PacketProcessor {
         registerHandler(SendOpcode.CHUNK, new ChunkHandler());
         registerHandler(SendOpcode.MOVEMENT, new MovementHandler());
         registerHandler(SendOpcode.REGISTER, new RegisterHandler());
+        registerHandler(SendOpcode.CHAT_MESSAGE, new ChatMessageHandler());
     }
 }

@@ -1,6 +1,7 @@
 package net;
 
 import org.unallied.mmocraft.Player;
+import org.unallied.mmocraft.gui.MessageType;
 import org.unallied.mmocraft.net.Packet;
 import org.unallied.mmocraft.net.PacketLittleEndianWriter;
 import org.unallied.mmocraft.net.RecvOpcode;
@@ -162,4 +163,23 @@ public class PacketCreator {
         
         return writer.getPacket();
     }
+    
+    /**
+     * Returns a chat message packet which tells the client who sent the message,
+     * the type of the message, and what the message contains.
+     * @param name Name of the person sending the chat message
+     * @param type Type of the chat message to send (SAY, PARTY, GUILD, etc.)
+     * @param message The actual message that the player is sending
+     */
+	public static Packet getChatMessage(String name, MessageType type,
+			String message) {
+		PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+		
+		writer.write(RecvOpcode.CHAT_MESSAGE);
+		writer.writePrefixedAsciiString(name);
+		writer.write(type.getValue());
+		writer.writePrefixedAsciiString(message);
+		
+		return writer.getPacket();
+	}
 }

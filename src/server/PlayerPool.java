@@ -5,6 +5,10 @@ import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.unallied.mmocraft.net.Packet;
+
+import client.Client;
+
 /**
  * Contains all available players on the server.
  * @author Faythless
@@ -12,7 +16,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class PlayerPool {
     private final ReentrantReadWriteLock locks = new ReentrantReadWriteLock();
-//    private final Lock readLock = locks.readLock();
+    private final Lock readLock = locks.readLock();
     private final Lock writeLock = locks.writeLock();
     
     /* Iteration is probably important, and we might add/remove players inside
@@ -53,5 +57,25 @@ public class PlayerPool {
         }
     }
     
-    
+	/**
+	 * Broadcasts the packet to all players on the server.
+	 * @param packet the packet to broadcast
+	 */
+    public void globalBroadcast(Packet packet) {
+    	if (packet != null) {
+	    	readLock.lock();
+	    	try {
+	    		for (ServerPlayer player : pool.values()) {
+	    			if (player != null) {
+	    				Client c = player.getClient();
+	    				if (c != null) {
+	    					c.announce(packet);
+	    				}
+	    			}
+	    		}
+	    	} finally {
+	    		readLock.unlock();
+	    	}
+    	}
+    }
 }

@@ -140,7 +140,9 @@ public class Client {
      * @param packet The packet to send to the client.
      */
     public void announce(Packet packet) {
-        session.write(packet);
+    	try {
+    		session.write(packet);
+    	} catch (Throwable t) {}
     }
 
     /**
@@ -168,4 +170,26 @@ public class Client {
             }
         }
     }
+
+    /**
+     * Broadcasts packet to all players centered around <code>player</code> INCLUDING the
+     * player.
+     * @param player the player to center the broadcast around.
+     * @param packet the packet to broadcast
+     */
+	public void broadcast(ServerPlayer player, Packet packet) {
+		selectiveBroadcast(player, packet);
+		try {
+			player.getClient().announce(packet);
+		} catch (NullPointerException e) {
+		}
+	}
+	
+	/**
+	 * Broadcasts the packet to all players on the server.
+	 * @param packet the packet to broadcast
+	 */
+	public void globalBroadcast(Packet packet) {
+		Server.getInstance().globalBroadcast(packet);	
+	}
 }

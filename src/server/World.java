@@ -456,6 +456,10 @@ public class World {
         }
     }
     
+    /**
+     * Removes a player from their chunk
+     * @param player the player to remove
+     */
     public void removePlayer(ServerPlayer player) {
         if (player != null) {
             long chunkId = getChunkId(player.getLocation());

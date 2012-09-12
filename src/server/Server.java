@@ -15,6 +15,7 @@ import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+import org.unallied.mmocraft.net.Packet;
 
 import client.Client;
 
@@ -154,5 +155,13 @@ public class Server {
      */
 	public DatabaseAccessor getDatabase() {
 		return database;
+	}
+
+	/**
+	 * Broadcasts the packet to all players on the server.
+	 * @param packet the packet to broadcast
+	 */
+	public void globalBroadcast(Packet packet) {
+		players.globalBroadcast(packet);
 	}
 }

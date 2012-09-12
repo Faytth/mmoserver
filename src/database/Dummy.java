@@ -1,6 +1,7 @@
 package database;
 
 import org.unallied.mmocraft.BoundLocation;
+import org.unallied.mmocraft.tools.Hasher;
 
 import server.ServerPlayer;
 import client.Client;
@@ -15,7 +16,18 @@ public class Dummy implements DatabaseAccessor {
 	@Override
 	public boolean getPlayer(Client client, String username) {
         // Set client info
-        client.loginSession.setPassword("dummy");
+		String pass = "dummy";
+		String user = "dummy";
+		
+		// We have to do this because the password is supposed to be hashed
+		byte[] byteData = Hasher.getSHA256((user + pass).getBytes());
+        StringBuffer sb = new StringBuffer();
+        for (int i=0; i < byteData.length; ++i) {
+            sb.append(Integer.toString((byteData[i] & 0xFF) + 0x100, 16).substring(1));
+        }
+        pass = sb.toString();
+        
+        client.loginSession.setPassword(pass);
         client.setAccountId(accountId);
         
         // Get the player's information

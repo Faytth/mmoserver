@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import net.PacketCreator;
 
 import org.unallied.mmocraft.tools.Authenticator;
+import org.unallied.mmocraft.tools.Hasher;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 
 import server.Server;
@@ -24,19 +25,12 @@ public class RegisterHandler extends AbstractServerPacketHandler {
         String pass = slea.readPrefixedAsciiString();
         String email = slea.readPrefixedAsciiString();
         if (Authenticator.isValidPass(pass)) {
-            try {
-                MessageDigest md = MessageDigest.getInstance("SHA-256");
-                md.update(user.getBytes());
-                md.update(pass.getBytes());
-                byte[] byteData = md.digest();
-                StringBuffer sb = new StringBuffer();
-                for (int i=0; i < byteData.length; ++i) {
-                    sb.append(Integer.toString((byteData[i] & 0xFF) + 0x100, 16).substring(1));
-                }
-                pass = sb.toString();
-            } catch (NoSuchAlgorithmException e) { //Uh oh!
-                System.out.println(e.getMessage());
+            byte[] byteData = Hasher.getSHA256((user + pass).getBytes());
+            StringBuffer sb = new StringBuffer();
+            for (int i=0; i < byteData.length; ++i) {
+                sb.append(Integer.toString((byteData[i] & 0xFF) + 0x100, 16).substring(1));
             }
+            pass = sb.toString();
         }
         boolean accepted = Server.getInstance().getDatabase().createAccount(user, pass, email);
         

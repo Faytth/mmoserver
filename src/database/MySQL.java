@@ -158,9 +158,8 @@ public class MySQL implements DatabaseAccessor {
      * @return 
      */
     public boolean createAccount(String user, String pass, String email) {
-        // Make sure user, pass, and email are all valid
-        if (Authenticator.isValidUser(user) && Authenticator.isValidPass(pass) && 
-                Authenticator.isValidEmail(email)) {
+        // Make sure user and email are valid.  Don't check pass because it's a hash right now
+        if (Authenticator.isValidUser(user)  && Authenticator.isValidEmail(email)) {
             Connection conn = getConnection();
             try {
                 int index = 1;

@@ -15,13 +15,13 @@ import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+import org.unallied.mmocraft.constants.ClientConstants;
 import org.unallied.mmocraft.net.Packet;
 
 import client.Client;
 
-import constants.ServerConstants;
 import database.DatabaseAccessor;
-import database.Dummy;
+import database.DummyDatabase;
 
 /**
  * The main server.  A server controls all players, monsters, etc. inside of
@@ -34,7 +34,7 @@ import database.Dummy;
 public class Server {
     
     private PlayerPool players = new PlayerPool();
-    private DatabaseAccessor database = new Dummy();
+    private DatabaseAccessor database = new DummyDatabase();
     
     private IoAcceptor acceptor;
         
@@ -70,10 +70,10 @@ public class Server {
 
         acceptor = new NioSocketAcceptor();
         acceptor.getFilterChain().addLast("codec", (IoFilter) new ProtocolCodecFilter(new MMOCodecFactory()));
-        acceptor.getSessionConfig().setIdleTime(IdleStatus.BOTH_IDLE, ServerConstants.PACKET_TIMEOUT);
+        acceptor.getSessionConfig().setIdleTime(IdleStatus.BOTH_IDLE, ClientConstants.PACKET_TIMEOUT);
         acceptor.setHandler(new MMOServerHandler(PacketProcessor.getInstance()));
         try {
-            acceptor.bind(new InetSocketAddress(ServerConstants.SERVER_PORT));
+            acceptor.bind(new InetSocketAddress(ClientConstants.SERVER_PORT));
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

@@ -6,7 +6,7 @@ import org.unallied.mmocraft.tools.Hasher;
 import server.ServerPlayer;
 import client.Client;
 
-public class Dummy implements DatabaseAccessor {
+public class DummyDatabase implements DatabaseAccessor {
 
 	/**
 	 * Stores the account ID so that it can increment each time getPlayer is called.

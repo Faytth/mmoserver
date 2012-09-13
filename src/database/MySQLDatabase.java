@@ -15,7 +15,7 @@ import server.ServerPlayer;
 
 import client.Client;
 
-public class MySQL implements DatabaseAccessor {
+public class MySQLDatabase implements DatabaseAccessor {
 	
     private static ThreadLocal<Connection> con = new ThreadLocalConnection();
     private static String url = DatabaseConstants.DB_URL;
@@ -71,7 +71,7 @@ public class MySQL implements DatabaseAccessor {
         }
     }
 
-    public MySQL() {
+    public MySQLDatabase() {
     	
     }
     

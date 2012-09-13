@@ -3,10 +3,10 @@ package net.handlers;
 import java.util.Arrays;
 
 import org.unallied.mmocraft.Player;
+import org.unallied.mmocraft.constants.ClientConstants;
 import org.unallied.mmocraft.tools.Hasher;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 
-import constants.ServerConstants;
 import net.PacketCreator;
 import client.Client;
 import server.Server;
@@ -24,7 +24,7 @@ public class CredsHandler extends AbstractServerPacketHandler {
      */
     public void handlePacket(SeekableLittleEndianAccessor slea, Client client) {
         int clientNonce = slea.readInt();
-        byte[] hash = slea.read(ServerConstants.HASH_SIZE);
+        byte[] hash = slea.read(ClientConstants.HASH_SIZE);
         client.loginSession.setClientNonce(clientNonce);
         
         // Check to make sure that this client knows the password
@@ -32,7 +32,7 @@ public class CredsHandler extends AbstractServerPacketHandler {
                 (client.loginSession.getClientNonce()
                 + client.loginSession.getServerNonce()
                 + client.loginSession.getPassword()).getBytes(
-                        ServerConstants.CHARSET) );
+                        ClientConstants.CHARSET) );
         
         // Make sure the client knows the password
         if (computedHash != null && Arrays.equals(hash, computedHash)) {
@@ -40,7 +40,7 @@ public class CredsHandler extends AbstractServerPacketHandler {
                     (client.loginSession.getServerNonce()
                     + client.loginSession.getClientNonce()
                     + client.loginSession.getPassword()).getBytes(
-                            ServerConstants.CHARSET) );
+                            ClientConstants.CHARSET) );
                     
             // Send verify
             client.announce(PacketCreator.getVerify(verifyHash) );

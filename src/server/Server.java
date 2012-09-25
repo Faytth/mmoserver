@@ -15,7 +15,9 @@ import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+import org.unallied.mmocraft.ItemManager;
 import org.unallied.mmocraft.constants.ClientConstants;
+import org.unallied.mmocraft.constants.ServerConstants;
 import org.unallied.mmocraft.net.Packet;
 
 import client.Client;
@@ -58,6 +60,7 @@ public class Server {
      * Initializes the server for execution.
      */
     private void init() {
+        ItemManager.load(ServerConstants.ITEM_PACK_LOCATION);
         World.getInstance().generateWorld();
     }
         

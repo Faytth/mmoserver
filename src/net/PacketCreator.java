@@ -1,5 +1,8 @@
 package net;
 
+import java.util.Collection;
+
+import org.unallied.mmocraft.ItemData;
 import org.unallied.mmocraft.Player;
 import org.unallied.mmocraft.gui.MessageType;
 import org.unallied.mmocraft.net.Packet;
@@ -89,6 +92,7 @@ public class PacketCreator {
         // TODO:  Improve this.  writeObject may be nice for most cases, but we should
         //        avoid using it because of its size and "unknown" problems.
         writer.writeObject(player);
+        writer.write(player.getInventory().getBytes());
         
         return writer.getPacket();
     }
@@ -170,6 +174,7 @@ public class PacketCreator {
      * @param name Name of the person sending the chat message
      * @param type Type of the chat message to send (SAY, PARTY, GUILD, etc.)
      * @param message The actual message that the player is sending
+     * @return packet
      */
 	public static Packet getChatMessage(String name, MessageType type,
 			String message) {
@@ -181,5 +186,23 @@ public class PacketCreator {
 		writer.writePrefixedAsciiString(message);
 		
 		return writer.getPacket();
+	}
+	
+	/**
+	 * Returns a packet containing a collection of items.  The packet is as follows:
+	 * [numberOfItems] [item] [item] ...
+	 * @param items
+	 * @return packet
+	 */
+	public static Packet getItemData(Collection<ItemData> items) {
+	    PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+	    
+	    writer.write(RecvOpcode.ITEM_DATA);
+	    writer.writeInt(items.size());
+	    for (ItemData item : items) {
+	        writer.write(item.getBytes());
+	    }
+	    
+	    return writer.getPacket();
 	}
 }

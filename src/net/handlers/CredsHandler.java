@@ -66,6 +66,8 @@ public class CredsHandler extends AbstractServerPacketHandler {
             p.setLocation(sp.getLocation());
             p.setName(sp.getName());
             p.setState(sp.getState());
+            p.setInventory(sp.getInventory());
+            client.announce(PacketCreator.getItemData(p.getInventory().getItemData()));
             client.announce(PacketCreator.getPlayer(p));
         } else {
             // The client doesn't know the password, or there has been an error

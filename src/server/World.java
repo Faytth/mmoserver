@@ -29,12 +29,12 @@ public class World {
     private final Lock readLock = locks.readLock();
     private final Lock writeLock = locks.writeLock();
     
-    private static final double HEAT_FREQUENCY = 0.30;
+    private static final double HEAT_FREQUENCY = 1.80;
     private static final double HEAT_LACUNARITY = 0.30;
     private static final double HEAT_PERSISTENCE = 0.95;
     private static final int HEAT_OCTAVE_COUNT = 6;
     
-    private static final double HUMIDITY_FREQUENCY = 0.30;
+    private static final double HUMIDITY_FREQUENCY = 1.70;
     private static final double HUMIDITY_LACUNARITY = 0.30;
     private static final double HUMIDITY_PERSISTENCE = 0.95;
     private static final int HUMIDITY_OCTAVE_COUNT = 6;
@@ -197,9 +197,8 @@ public class World {
         double rainfall = (humidity.getValue(x, 0.5)+1) * 50;
         
         //http://www.minecraftwiki.net/wiki/File:BiomesGraph.png <-- use this to help
-        System.out.println("Heat: " + iheat + "  | Rain: " + rainfall);
-        return new HillsRegion(x, y); // FIXME:  THIS IS ONLY A TEST
-        /*
+        System.out.print("Heat: " + iheat + "  | Rain: " + rainfall + " | ");
+
         if (rainfall < 25) {
             if (iheat < 25) {
                 return new PlainsRegion(x, y);
@@ -207,12 +206,12 @@ public class World {
                 return new DesertRegion(x, y);
             }
         } else if (rainfall < 50) {
-            return new PlainsRegion(x, y);
+            return new HillsRegion(x, y);
         } else if (rainfall < 75) {
-            return new PlainsRegion(x, y);
+            return new HillsRegion(x, y);
         } else {
             return new ShatteredRegion(x, y);
-        }*/
+        }
     }
     
     /**
@@ -249,6 +248,7 @@ public class World {
         for (int i=0; i < WorldConstants.WORLD_REGIONS_WIDE; ++i) {
             for (int j=0; j < WorldConstants.WORLD_REGIONS_TALL; ++j) {
                 regions[i][j] = generateRegion(heat, humidity, i, j);
+                System.out.print(regions[i][j].toString().split("@")[0] + "\n");
             }
         }
         
@@ -270,7 +270,6 @@ public class World {
         
         // Create the blocks
         for (int i=0; i < WorldConstants.WORLD_WIDTH; ++i) {
-            System.out.println(i + " / " + WorldConstants.WORLD_WIDTH + " block columns loaded.");
             for (int j=0; j < WorldConstants.WORLD_HEIGHT; ++j) {
                 Region region = regions[i/(int)WorldConstants.WORLD_REGION_WIDTH][j/(int)WorldConstants.WORLD_REGION_HEIGHT];
                 double val = region.getValue(perlin, i, j);
@@ -278,7 +277,11 @@ public class World {
                 val += WorldConstants.WORLD_WEIGHT * j / WorldConstants.WORLD_HEIGHT;
                 blocks[i][j] = region.getBlock(val);
             }
+            if ((i+1) % 1000 == 0) {
+                System.out.println(i+1 + " / " + WorldConstants.WORLD_WIDTH + " block columns loaded.");
+            }
         }
+        System.out.println("Finished loading all block columns.");
         
         // make the land more interesting by carving worm-like tunnels
         

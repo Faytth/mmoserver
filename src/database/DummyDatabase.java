@@ -1,6 +1,12 @@
 package database;
 
+import java.util.Collection;
+
 import org.unallied.mmocraft.BoundLocation;
+import org.unallied.mmocraft.Item;
+import org.unallied.mmocraft.ItemData;
+import org.unallied.mmocraft.ItemManager;
+import org.unallied.mmocraft.constants.ClientConstants;
 import org.unallied.mmocraft.tools.Hasher;
 
 import server.ServerPlayer;
@@ -37,6 +43,15 @@ public class DummyDatabase implements DatabaseAccessor {
         player.setId(accountId++);
         player.setName("Dummy");
         player.setLocation(new BoundLocation(0, 0, 0, 0));
+        // Add all items in the item manager to the dummy character
+        Collection<ItemData> itemData = ItemManager.getAllItemData();
+        for (ItemData data : itemData) {
+            try {
+                player.getInventory().addItem(new Item(data.getId()), ClientConstants.MAX_ITEM_STACK);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         
         // Assign the player to the client
         client.setPlayer(player);

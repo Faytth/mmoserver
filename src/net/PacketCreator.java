@@ -2,9 +2,9 @@ package net;
 
 import java.util.Collection;
 
-import org.unallied.mmocraft.ItemData;
 import org.unallied.mmocraft.Player;
 import org.unallied.mmocraft.gui.MessageType;
+import org.unallied.mmocraft.items.ItemData;
 import org.unallied.mmocraft.net.Packet;
 import org.unallied.mmocraft.net.PacketLittleEndianWriter;
 import org.unallied.mmocraft.net.RecvOpcode;

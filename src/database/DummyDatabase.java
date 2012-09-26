@@ -3,10 +3,10 @@ package database;
 import java.util.Collection;
 
 import org.unallied.mmocraft.BoundLocation;
-import org.unallied.mmocraft.Item;
-import org.unallied.mmocraft.ItemData;
-import org.unallied.mmocraft.ItemManager;
 import org.unallied.mmocraft.constants.ClientConstants;
+import org.unallied.mmocraft.items.Item;
+import org.unallied.mmocraft.items.ItemData;
+import org.unallied.mmocraft.items.ItemManager;
 import org.unallied.mmocraft.tools.Hasher;
 
 import server.ServerPlayer;

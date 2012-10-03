@@ -41,8 +41,11 @@ public class DummyDatabase implements DatabaseAccessor {
         player.setHpMax(100);
         player.setHpCurrent(player.getHpMax());
         player.setId(accountId++);
-        player.setName("Dummy");
+        player.setName("Dummy" + accountId);
         player.setLocation(new BoundLocation(0, 0, 0, 0));
+        // Kludge:  Create player on land
+        player.init();
+        player.accelerateDown(100000, 100f, 100f);
         // Add all items in the item manager to the dummy character
         Collection<ItemData> itemData = ItemManager.getAllItemData();
         for (ItemData data : itemData) {

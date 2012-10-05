@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project mmoserver with libraries in sub-folder">
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties">
+        <classpath>
+            <pathelement location="C:/Program Files (x86)/eclipse/plugins/org.apache.ant_1.8.2.v20120109-1030/lib/ant-contrib-1.0b3.jar"/>
+        </classpath>
+    </taskdef>
+    <macrodef name="unsignjar">
+        <attribute name="jar"/>
+        <sequential>
+            <!-- Remove any existing signatures from a JAR file. -->
+            <tempfile prefix="usignjar-" destdir="${java.io.tmpdir}" property="temp.file"/>
+            <echo message="Removing signatures from JAR: @{jar}"/>
+            <mkdir dir="${temp.file}"/>
+                    
+            <unjar src="@{jar}" dest="${temp.file}">
+                <patternset>
+                    <include name="**"/>
+                    <exclude name="META-INF/*.SF"/>
+                    <exclude name="META-INF/*.DSA"/>
+                    <exclude name="META-INF/*.RSA"/>
+                </patternset>
+            </unjar>
+                    
+            <delete file="@{jar}" failonerror="true"/>
+                    
+            <!-- Touch it in case the file didn't have a manifest.
+                 Otherwise the JAR task below will fail if the manifest 
+                 file doesn't exist. -->
+            <mkdir dir="${temp.file}/META-INF"/>
+            <touch file="${temp.file}/META-INF/MANIFEST.MF"/>
+                    
+            <jar destfile="@{jar}" 
+                basedir="${temp.file}" 
+                includes="**" 
+                manifest="${temp.file}/META-INF/MANIFEST.MF"/>
+                    
+            <delete dir="${temp.file}" failonerror="true"/>
+        </sequential>
+    </macrodef>
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <target name="create_run_jar">
+        <jar destfile="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmoserver.jar">
+            <manifest>
+                <attribute name="Main-Class" value="server.Server"/>
+                <attribute name="Class-Path" value=". mmocraft_lib/libnoiseforjava.jar mmocraft_lib/mmocraft.jar mmocraft_lib/phys2d.jar mmocraft_lib/jogg-0.0.7.jar mmocraft_lib/jorbis-0.0.15.jar mmocraft_lib/lwjgl.jar mmocraft_lib/slick.jar mmocraft_lib/mina-core.jar mmocraft_lib/slf4j-api.jar mmocraft_lib/slf4j-jdk14.jar"/>
+            </manifest>
+            <fileset dir="C:/Users/Alexandria/git/mmoserver/bin"/>
+        </jar>
+<!--        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/git/mmocraft/lib/phys2d.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/git/mmocraft/lib/phys2d.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/git/mmocraft/lib/jogg-0.0.7.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/git/mmocraft/lib/jogg-0.0.7.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/git/mmocraft/lib/jorbis-0.0.15.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/git/mmocraft/lib/jorbis-0.0.15.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/git/mmocraft/lib/lwjgl.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/git/mmocraft/lib/lwjgl.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/git/mmocraft/lib/slick.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/git/mmocraft/lib/slick.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/git/mmocraft/lib/mina-core.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/git/mmocraft/lib/mina-core.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/git/mmocraft/lib/slf4j-api.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/git/mmocraft/lib/slf4j-api.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/git/mmocraft/lib/slf4j-jdk14.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/git/mmocraft/lib/slf4j-jdk14.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+-->
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmoserver.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmoserver.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+<!--
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/jinput.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/jinput.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/windows_natives.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/windows_natives.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/linux_natives.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/linux_natives.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/macosx_natives.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/macosx_natives.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/lwjgl_util_applet.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/lwjgl_util_applet.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+        <sequential>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/lwjgl_util.jar"/>
+            <signjar
+                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/lwjgl_util.jar"
+                alias="Faythless"
+                storepass="Oq1rvn7t0"
+                keystore="C:/Users/Alexandria/.keystore"/>
+        </sequential>
+-->
+        <delete dir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <mkdir dir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <copy file="C:/Users/Alexandria/workspace/unallied.com/mmocraft/mmocraft.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <copy file="C:/Users/Alexandria/git/mmocraft/lib/phys2d.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <copy file="C:/Users/Alexandria/git/mmocraft/lib/jogg-0.0.7.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <copy file="C:/Users/Alexandria/git/mmocraft/lib/jorbis-0.0.15.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <copy file="C:/Users/Alexandria/git/mmocraft/lib/lwjgl.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <copy file="C:/Users/Alexandria/git/mmocraft/lib/slick.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <copy file="C:/Users/Alexandria/git/mmocraft/lib/mina-core.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <copy file="C:/Users/Alexandria/git/mmocraft/lib/slf4j-api.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <copy file="C:/Users/Alexandria/git/mmocraft/lib/slf4j-jdk14.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+        <copy file="C:/Users/Alexandria/git/mmoserver/lib/libnoiseforjava.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmocraft_lib"/>
+    </target>
+</project>

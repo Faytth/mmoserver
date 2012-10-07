@@ -67,7 +67,7 @@ public class ServerPlayer extends Player {
                 
                 TerrainSession ts = Game.getInstance().getClient().getTerrainSession();
                 Location topLeft = new Location(this.location);
-                if (direction == Direction.FACE_RIGHT) {
+                if (direction == Direction.RIGHT) {
                     topLeft.moveDown(verticalOffset + collisionArc[curIndex].getYOffset());
                     topLeft.moveRight(horizontalOffset + collisionArc[curIndex].getXOffset());
                 } else { // Flipped collision stuff.  This was such a pain to calculate.
@@ -90,13 +90,13 @@ public class ServerPlayer extends Player {
                     for (long y = topLeft.getY(); y <= bottomRight.getY(); ++y) {
                         if (ts.getBlock(x, y).isCollidable() || true) {
                             int xOff = 0;
-                            if (direction == Direction.FACE_RIGHT) {
+                            if (direction == Direction.RIGHT) {
                                 xOff = (int) (((x - this.location.getX()) * WorldConstants.WORLD_BLOCK_WIDTH - horizontalOffset - collisionArc[curIndex].getXOffset() - this.location.getXOffset()));
                             } else {
                                 xOff = (int) (-this.location.getXOffset() + current.getWidth() - ((this.location.getX() - x) * WorldConstants.WORLD_BLOCK_WIDTH + getWidth() - horizontalOffset + collisionArc[curIndex].getFlipped().getXOffset()));
                             }
                             int yOff = (int) (((y - this.location.getY()) * WorldConstants.WORLD_BLOCK_HEIGHT - verticalOffset - collisionArc[curIndex].getYOffset() - this.location.getYOffset()));
-                            float damage =  (direction == Direction.FACE_RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
+                            float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
                                     new Rectangle(WorldConstants.WORLD_BLOCK_WIDTH, WorldConstants.WORLD_BLOCK_HEIGHT), xOff, yOff);
                             if (damage > 0) {
 //                                ts.setBlock(x, y, new AirBlock());

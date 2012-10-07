@@ -29,7 +29,7 @@ public class MovementHandler extends AbstractServerPacketHandler {
             p.setLocation(location);
             // TODO:  Make sure player isn't lying about their current state
             p.setState(AnimationType.getState(p, p.getState(), slea.readShort()));
-            p.setDirection(slea.readByte() == 0 ? Direction.FACE_RIGHT : Direction.FACE_LEFT);
+            p.setDirection(slea.readByte() == 0 ? Direction.RIGHT : Direction.LEFT);
             // TODO:  Broadcast to all other players in close proximity
             client.selectiveBroadcast(p, PacketCreator.getMovement(p));
         }

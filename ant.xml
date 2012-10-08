@@ -43,7 +43,7 @@
     <target name="create_run_jar">
         <jar destfile="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/mmoserver.jar">
             <manifest>
-                <attribute name="Main-Class" value="server.Server"/>
+                <attribute name="Main-Class" value="org.unallied.mmoserver.server.Server"/>
                 <attribute name="Class-Path" value=". mmocraft_lib/libnoiseforjava.jar mmocraft_lib/mmocraft.jar mmocraft_lib/phys2d.jar mmocraft_lib/jogg-0.0.7.jar mmocraft_lib/jorbis-0.0.15.jar mmocraft_lib/lwjgl.jar mmocraft_lib/slick.jar mmocraft_lib/mina-core.jar mmocraft_lib/slf4j-api.jar mmocraft_lib/slf4j-jdk14.jar"/>
             </manifest>
             <fileset dir="C:/Users/Alexandria/git/mmoserver/bin"/>

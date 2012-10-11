@@ -1,12 +1,13 @@
 package org.unallied.mmoserver.server;
 
 import java.awt.Rectangle;
-import java.awt.geom.Point2D;
 
+import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.CollisionBlob;
 import org.unallied.mmocraft.Direction;
 import org.unallied.mmocraft.Location;
 import org.unallied.mmocraft.Player;
+import org.unallied.mmocraft.RawPoint;
 import org.unallied.mmocraft.animations.AnimationState;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.client.Game;
@@ -53,16 +54,16 @@ public class ServerPlayer extends Player {
      * @return
      */
     public Location collide(Location start, Location end, float vf) {
-        Location result = new Location(start);
+        Location result = new BoundLocation(start);
         try {            
             // We split this into horizontal then vertical testing.
-            Location horizontalEnd = new Location(start);
+            Location horizontalEnd = new BoundLocation(start);
             horizontalEnd.setX(end.getX());
             horizontalEnd.setXOffset(end.getXOffset());
             World world = World.getInstance();
             
             // If air
-            Location horizontalCollide = new Location(world.collideWithBlock(start, horizontalEnd));
+            Location horizontalCollide = new BoundLocation(world.collideWithBlock(start, horizontalEnd));
             if (horizontalCollide.equals(horizontalEnd)) {
                 result.setX(end.getX());
                 result.setXOffset(end.getXOffset());
@@ -70,12 +71,12 @@ public class ServerPlayer extends Player {
             
             // Vertical testing
             if (end.getY() != start.getY() || end.getYOffset() != start.getYOffset()) {
-                Location verticalEnd = new Location(result);
+                Location verticalEnd = new BoundLocation(result);
                 verticalEnd.setY(end.getY());
                 verticalEnd.setYOffset(end.getYOffset());
                 
                 // If air
-                Location verticalCollide = new Location(world.collideWithBlock(result, verticalEnd));
+                Location verticalCollide = new BoundLocation(world.collideWithBlock(result, verticalEnd));
                 // If we didn't hit anything
                 if (verticalCollide.equals(verticalEnd)) {
                     fallSpeed = vf;
@@ -103,10 +104,10 @@ public class ServerPlayer extends Player {
      * @return stuck.  True if the player is stuck; else false.
      */
     public boolean isStuck() {
-        for (Point2D.Double p : hitbox) {
+        for (RawPoint p : hitbox) {
             Location start = new Location(location);
-            start.moveRight((float) p.getX());
-            start.moveDown((float) p.getY());
+            start.moveRawRight(p.getX());
+            start.moveRawDown(p.getY());
             Block block = World.getInstance().getBlock(start);
             if (block != null && block.isCollidable()) {
                 return true;
@@ -213,30 +214,29 @@ public class ServerPlayer extends Player {
         if (vf > terminalVelocity) {
             vf = terminalVelocity;
         }
-        Point2D.Double distance = new Point2D.Double(); // distance contains the distance that all points are supposed to move
-        distance.setLocation(0.0, ((fallSpeed + vf) / 2.0f) * t);
+        RawPoint distance = new RawPoint(0, (long) ((((velocity.getY() + vf) / 2.0f) * t) / WorldConstants.WORLD_BLOCK_HEIGHT * Location.BLOCK_GRANULARITY));
         
         World world = World.getInstance();
         
         // Iterate over all points in our hit box, and fix our end location as needed.
-        for (Point2D.Double p : hitbox) {
+        for (RawPoint p : hitbox) {
             // our location should be the top-left corner.  Fix offsets as needed for start / end
-            Location start = new Location(location);
-            start.moveRight((float) p.getX());
-            start.moveDown((float) p.getY());
-            Location end = new Location(start);
-            end.moveRight((float) distance.getX());
-            end.moveDown((float) distance.getY());
+            Location start = new BoundLocation(location);
+            start.moveRawRight(p.getX());
+            start.moveRawDown(p.getY());
+            Location end = new BoundLocation(start);
+            end.moveRawRight(distance.getX());
+            end.moveRawDown(distance.getY());
             
             // Get our new location
-            Location newEnd = new Location(world.collideWithBlock(start, end));
+            Location newEnd = new BoundLocation(world.collideWithBlock(start, end));
             
             hitSomething |= !newEnd.equals(end);
             
             // We now need to fix our distance based on our new end
             distance.setLocation(
-                    (newEnd.getX()-start.getX()) * WorldConstants.WORLD_BLOCK_WIDTH + (newEnd.getXOffset()-start.getXOffset()),
-                    (newEnd.getY()-start.getY()) * WorldConstants.WORLD_BLOCK_HEIGHT + (newEnd.getYOffset()-start.getYOffset()));
+                    newEnd.getRawX() - start.getRawX(), 
+                    newEnd.getRawY() - start.getRawY());
         }
         
         // If we didn't hit anything
@@ -253,7 +253,7 @@ public class ServerPlayer extends Player {
         }
         
         // Our distance is now the farthest we can travel
-        location.moveRight((float) distance.getX());
-        location.moveDown((float) distance.getY());
+        location.moveRawRight(distance.getX());
+        location.moveRawDown(distance.getY());
     }
 }

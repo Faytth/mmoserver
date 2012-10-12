@@ -288,10 +288,10 @@ public class World {
         // make the land more interesting by carving worm-like tunnels
         
         // make "dungeons" (really long tunnels)
-        worms(WorldConstants.WORM_COUNT, 2, WorldConstants.WORM_RADIUS_CHANGE_RATE,
+        worms(WorldConstants.WORM_COUNT, 3, WorldConstants.WORM_RADIUS_CHANGE_RATE,
                 WorldConstants.WORM_DIRECTION_CHANGE_RATE, WorldConstants.WORM_LENGTH);
         // Punch out little holes in the world
-        worms(WorldConstants.WORM_COUNT*1667, 1, 90,
+        worms(WorldConstants.WORM_COUNT*1667, 2, 90,
                 WorldConstants.WORM_DIRECTION_CHANGE_RATE*2, 93000);
     }
     

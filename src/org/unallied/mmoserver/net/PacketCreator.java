@@ -123,7 +123,6 @@ public class PacketCreator {
         
         writer.write(RecvOpcode.MOVEMENT);
         writer.writeInt(player.getId());
-        writer.writeInt(player.getDelay());
         writer.write(player.getLocation().getBytes());
         writer.writeShort(player.getState().getId().getValue());
         writer.write((byte)player.getDirection().ordinal()); // right is 0, left is 1

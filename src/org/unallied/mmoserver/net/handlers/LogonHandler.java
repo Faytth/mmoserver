@@ -25,7 +25,10 @@ public class LogonHandler extends AbstractServerPacketHandler {
         String username = slea.readPrefixedAsciiString();
         client.loginSession.setUsername(username);
         
-        if (Server.getInstance().getDatabase().getPlayer(client, username)) {
+        if (client.isLoggedIn()) {
+            client.announce(PacketCreator.getLoginError("Already logged in."));
+            client.disconnect();
+        } else if (Server.getInstance().getDatabase().getPlayer(client, username)) {
             // Tell client a challenge message
             client.announce(PacketCreator.getChallenge(serverNonce));
         } else {

@@ -41,7 +41,7 @@ public class DummyDatabase implements DatabaseAccessor {
         player.setHpMax(100);
         player.setHpCurrent(player.getHpMax());
         player.setId(accountId++);
-        player.setName("Dummy" + accountId);
+        player.setName("Test" + accountId);
         player.setLocation(new BoundLocation(0, 0, 0, 0));
         // Kludge:  Create player on land
         player.init();
@@ -55,6 +55,9 @@ public class DummyDatabase implements DatabaseAccessor {
                 e.printStackTrace();
             }
         }
+        // Set the dummy's gold to max.  Why not?
+        player.getInventory().setGold(Long.MAX_VALUE);
+        player.getInventory().addGold(1);
         
         // Assign the player to the client
         client.setPlayer(player);

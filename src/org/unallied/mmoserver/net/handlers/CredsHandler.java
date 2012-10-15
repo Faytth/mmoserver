@@ -58,7 +58,6 @@ public class CredsHandler extends AbstractServerPacketHandler {
             // TODO:  Remove this code and instead add proper serialization for player
             ServerPlayer sp = client.getPlayer();
             Player p = new Player();
-            p.setDelay(sp.getDelay());
             p.setDirection(sp.getDirection());
             p.setHpCurrent(sp.getHpCurrent());
             p.setHpMax(sp.getHpMax());

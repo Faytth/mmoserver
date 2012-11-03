@@ -510,6 +510,72 @@ public class World {
     }
     
     /**
+     * Get the location that is just before <code>end</code> based off of the
+     * starting location.
+     * TODO:  This function needs to be thought out better.  It's messing with 
+     * {@link #collideWithBlock(Location, Location)}collideWithBlock.
+     * @param start the location to start at
+     * @param end the old end location
+     * @param collision the new end location
+     * @return the location right before the end location; returns null if any parameter is null
+     */
+    public Location getMaxLocation(Location start, Location end, BoundLocation collision) {
+        // Guard
+        if (start == null || end == null || collision == null) {
+            return null;
+        }
+        
+        // Special case for same block
+        if (start.getX() == collision.getX() && start.getY() == collision.getY()) {
+            return start;
+        }
+        
+        boolean simpleMaxLocation = false; // true if this max location is a change in only one dimension (x or y)
+        
+        // Fix offsets for collision.
+        if (start.getX() == end.getX() && start.getXOffset() == end.getXOffset()) {
+            collision.setRawX(start.getRawX());
+            simpleMaxLocation = true;
+        }
+        if (start.getY() == end.getY() && start.getYOffset() == end.getYOffset()) {
+            collision.setRawY(start.getRawY());
+            simpleMaxLocation = true;
+        }
+        
+        if (simpleMaxLocation) {
+            // Fix the x location
+            if (collision.getBlockDeltaX(start) > 0) {
+                collision.decrementX();
+            } else if (collision.getBlockDeltaX(start) < 0){
+                collision.moveRawRight(Location.BLOCK_GRANULARITY);
+            }
+            
+            // Fix the y location
+            if (collision.getBlockDeltaY(start) > 0) {
+                collision.decrementY();
+            } else if (collision.getBlockDeltaY(start) < 0) {
+                collision.moveRawDown(Location.BLOCK_GRANULARITY);
+            }
+        } else {
+            /*
+             *  Special case:  Because Bresenham's line algorithm is using whole
+             *  block coordinates (and not subpixel coordinates), we need to use
+             *  a do-while loop to ensure that collision is not part of a block
+             *  that has collision.
+             */
+            Block b;
+            BoundLocation prevCollision;
+            do {
+                prevCollision = collision;
+                collision = new BoundLocation(TerrainSession.getComplexMaxLocation(start, end, collision));
+                b = getBlock(collision.getX(), collision.getY());
+            } while (b != null && b.isCollidable() && !collision.equals(prevCollision));
+        }
+        
+        return collision;
+    }
+    
+    /**
      * Returns true if the path between <code>start</code> and <code>end</code>
      * collides with a block.
      * Uses Bresenham's line algorithm.
@@ -577,12 +643,12 @@ public class World {
             if (steep) {
                 Block b = getBlock(y,x);
                 if (b == null || b.isCollidable()) {
-                    return TerrainSession.getMaxLocation(end, end2, new BoundLocation(y,x));
+                    return getMaxLocation(end, end2, new BoundLocation(y,x));
                 }
             } else {
                 Block b = getBlock(x,y);
                 if (b == null || b.isCollidable()) {
-                    return TerrainSession.getMaxLocation(end, end2, new BoundLocation(x,y));
+                    return getMaxLocation(end, end2, new BoundLocation(x,y));
                 }
             }
             error -= deltay;

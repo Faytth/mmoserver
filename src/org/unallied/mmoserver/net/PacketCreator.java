@@ -126,6 +126,8 @@ public class PacketCreator {
         writer.write(player.getLocation().getBytes());
         writer.writeShort(player.getState().getId().getValue());
         writer.write((byte)player.getDirection().ordinal()); // right is 0, left is 1
+        writer.write(player.getVelocity().getBytes());
+        writer.writeFloat(player.getFallSpeed());
 
         return writer.getPacket();
     }
@@ -201,6 +203,22 @@ public class PacketCreator {
 	    for (ItemData item : items) {
 	        writer.write(item.getBytes());
 	    }
+	    
+	    return writer.getPacket();
+	}
+	
+	/**
+	 * Returns a packet containing the information of a player.  The packet is as follows:
+	 * [playerId] [playerName]
+	 * @param player The player whose info will be written to the packet.
+	 * @return packet
+	 */
+	public static Packet getPlayerInfo(Player player) {
+	    PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+	    
+	    writer.write(RecvOpcode.PLAYER_INFO);
+	    writer.writeInt(player.getId());
+	    writer.writePrefixedAsciiString(player.getName());
 	    
 	    return writer.getPacket();
 	}

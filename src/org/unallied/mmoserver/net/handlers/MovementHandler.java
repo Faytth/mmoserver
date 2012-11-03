@@ -3,13 +3,13 @@ package org.unallied.mmoserver.net.handlers;
 
 import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.Direction;
+import org.unallied.mmocraft.Velocity;
 import org.unallied.mmocraft.animations.AnimationType;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 import org.unallied.mmoserver.client.Client;
 import org.unallied.mmoserver.net.PacketCreator;
 import org.unallied.mmoserver.server.ServerPlayer;
 import org.unallied.mmoserver.server.World;
-
 
 
 public class MovementHandler extends AbstractServerPacketHandler {
@@ -30,7 +30,8 @@ public class MovementHandler extends AbstractServerPacketHandler {
             // TODO:  Make sure player isn't lying about their current state
             p.setState(AnimationType.getState(p, p.getState(), slea.readShort()));
             p.setDirection(slea.readByte() == 0 ? Direction.RIGHT : Direction.LEFT);
-            // TODO:  Broadcast to all other players in close proximity
+            p.setVelocity(Velocity.fromBytes(slea));
+            p.setFallSpeed(slea.readFloat());
             client.selectiveBroadcast(p, PacketCreator.getMovement(p));
         }
     }

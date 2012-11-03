@@ -16,6 +16,7 @@ import org.unallied.mmocraft.constants.ClientConstants;
 import org.unallied.mmocraft.constants.ServerConstants;
 import org.unallied.mmocraft.items.ItemManager;
 import org.unallied.mmocraft.net.Packet;
+import org.unallied.mmoserver.net.PacketCreator;
 import org.unallied.mmoserver.client.Client;
 import org.unallied.mmoserver.database.DatabaseAccessor;
 import org.unallied.mmoserver.database.DummyDatabase;
@@ -167,4 +168,17 @@ public class Server {
 	public void globalBroadcast(Packet packet) {
 		players.globalBroadcast(packet);
 	}
+
+	/**
+	 * Retrieves a player from the server if they're online.  Otherwise returns
+	 * null.
+	 * @param client The client requesting the information.
+	 * @param playerId The id of the player whose information is being requested.
+	 */
+    public void getPlayerInfo(Client client, int playerId) {
+        ServerPlayer player = players.getPlayer(playerId);
+        if (player != null) {
+            client.announce(PacketCreator.getPlayerInfo(player));
+        }
+    }
 }

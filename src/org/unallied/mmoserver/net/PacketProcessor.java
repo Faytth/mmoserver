@@ -66,5 +66,6 @@ public class PacketProcessor {
         registerHandler(SendOpcode.MOVEMENT, new MovementHandler());
         registerHandler(SendOpcode.REGISTER, new RegisterHandler());
         registerHandler(SendOpcode.CHAT_MESSAGE, new ChatMessageHandler());
+        registerHandler(SendOpcode.PLAYER_INFO, new PlayerInfoHandler());
     }
 }

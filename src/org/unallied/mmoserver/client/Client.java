@@ -192,4 +192,20 @@ public class Client {
 	public void globalBroadcast(Packet packet) {
 		Server.getInstance().globalBroadcast(packet);	
 	}
+
+	/**
+	 * Retrieves nearby players and other important information.
+	 */
+    public void selectiveConvergecast() {
+        /*
+         *  For all chunks in the drawn radius (see constants) of the player's
+         *  chunk, send a packet about them to the player
+         */
+        List<ServerPlayer> players = World.getInstance().getNearbyPlayers(player.getLocation());
+        for (ServerPlayer p : players) {
+            if (p.getId() != player.getId()) {
+                announce(PacketCreator.getMovement(p));
+            }
+        }
+    }
 }

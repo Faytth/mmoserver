@@ -68,6 +68,10 @@ public class CredsHandler extends AbstractServerPacketHandler {
             p.setInventory(sp.getInventory());
             client.announce(PacketCreator.getItemData(p.getInventory().getItemData()));
             client.announce(PacketCreator.getPlayer(p));
+            // Get nearby players.
+            client.selectiveConvergecast();
+            // Tell other players about this player.
+            client.selectiveBroadcast(sp, PacketCreator.getMovement(sp));
         } else {
             // The client doesn't know the password, or there has been an error
             client.announce(PacketCreator.getLoginError(

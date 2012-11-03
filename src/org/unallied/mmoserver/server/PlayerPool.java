@@ -78,4 +78,25 @@ public class PlayerPool {
 	    	}
     	}
     }
+    
+    /**
+     * Retrieves a player with the given id, or null if no player is found.
+     * @param playerId The id of the player to retrieve.
+     * @return serverPlayer or null if not found.
+     */
+    public ServerPlayer getPlayer(Integer playerId) {
+        if (playerId == null) {
+            return null;
+        }
+        ServerPlayer result = null;
+        
+        readLock.lock();
+        try {
+            result = pool.get(playerId);
+        } finally {
+            readLock.unlock();
+        }
+        
+        return result;
+    }
 }

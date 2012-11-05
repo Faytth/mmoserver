@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import org.unallied.mmocraft.Player;
 import org.unallied.mmocraft.constants.ClientConstants;
+import org.unallied.mmocraft.constants.ErrorConstants;
 import org.unallied.mmocraft.tools.Hasher;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 import org.unallied.mmoserver.client.Client;
@@ -74,8 +75,7 @@ public class CredsHandler extends AbstractServerPacketHandler {
             client.selectiveBroadcast(sp, PacketCreator.getMovement(sp));
         } else {
             // The client doesn't know the password, or there has been an error
-            client.announce(PacketCreator.getLoginError(
-                    "Wrong password.") );
+            client.announce(PacketCreator.getLoginError(ErrorConstants.LOGIN_ERROR) );
         }
     }
 

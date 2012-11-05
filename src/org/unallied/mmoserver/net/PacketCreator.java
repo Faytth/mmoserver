@@ -8,6 +8,7 @@ import org.unallied.mmocraft.items.ItemData;
 import org.unallied.mmocraft.net.Packet;
 import org.unallied.mmocraft.net.PacketLittleEndianWriter;
 import org.unallied.mmocraft.net.RecvOpcode;
+import org.unallied.mmocraft.skills.SkillType;
 import org.unallied.mmoserver.server.ServerPlayer;
 import org.unallied.mmoserver.server.World;
 
@@ -53,13 +54,13 @@ public class PacketCreator {
      * Sends an error message to the client specifying that there has been
      * an error in the login process.  This terminates the client's login
      * attempt.
-     * @param errorMsg The message to send to the client, such as "Invalid username."
+     * @param errorId The error ID to send to the client.
      * @return
      */
-    public static Packet getLoginError(String errorMsg) {
+    public static Packet getLoginError(int errorId) {
         PacketLittleEndianWriter writer = new PacketLittleEndianWriter(6);
         writer.write(RecvOpcode.LOGIN_ERROR);
-        writer.writePrefixedAsciiString(errorMsg);
+        writer.writeInt(errorId);
         
         return writer.getPacket();
     }
@@ -92,6 +93,7 @@ public class PacketCreator {
         // TODO:  Improve this.  writeObject may be nice for most cases, but we should
         //        avoid using it because of its size and "unknown" problems.
         writer.writeObject(player);
+        writer.write(player.getSkills().getBytes());
         writer.write(player.getInventory().getBytes());
         
         return writer.getPacket();
@@ -219,6 +221,22 @@ public class PacketCreator {
 	    writer.write(RecvOpcode.PLAYER_INFO);
 	    writer.writeInt(player.getId());
 	    writer.writePrefixedAsciiString(player.getName());
+	    
+	    return writer.getPacket();
+	}
+	
+	/**
+	 * Returns a packet containing the information of a skill.
+	 * @param type
+	 * @param experience
+	 * @return
+	 */
+	public static Packet getSkillExperience(SkillType type, long experience) {
+	    PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+	    
+	    writer.write(RecvOpcode.SKILL_EXPERIENCE);
+	    writer.write(type.getValue());
+	    writer.writeLong(experience);
 	    
 	    return writer.getPacket();
 	}

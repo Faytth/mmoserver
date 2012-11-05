@@ -13,7 +13,9 @@ import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.client.Game;
 import org.unallied.mmocraft.constants.WorldConstants;
 import org.unallied.mmocraft.net.sessions.TerrainSession;
+import org.unallied.mmocraft.skills.SkillType;
 import org.unallied.mmoserver.client.Client;
+import org.unallied.mmoserver.net.PacketCreator;
 
 
 /**
@@ -255,5 +257,15 @@ public class ServerPlayer extends Player {
         // Our distance is now the farthest we can travel
         location.moveRawRight(distance.getX());
         location.moveRawDown(distance.getY());
+    }
+    
+    public void addExperience(SkillType type, long experience) {
+        if (experience > 0) {
+            skills.addExperience(type, experience);
+            if (client != null) { // The player's experience changed, so inform them.
+                client.announce(PacketCreator.getSkillExperience(
+                        type, skills.getTotalExperience(type)));
+            }
+        }
     }
 }

@@ -1,6 +1,8 @@
 package org.unallied.mmoserver.net.handlers;
 
 import java.security.SecureRandom;
+
+import org.unallied.mmocraft.constants.ErrorConstants;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 import org.unallied.mmoserver.client.Client;
 import org.unallied.mmoserver.net.PacketCreator;
@@ -26,14 +28,14 @@ public class LogonHandler extends AbstractServerPacketHandler {
         client.loginSession.setUsername(username);
         
         if (client.isLoggedIn()) {
-            client.announce(PacketCreator.getLoginError("Already logged in."));
+            client.announce(PacketCreator.getLoginError(ErrorConstants.LOGIN_ALREADY_LOGGED_IN));
             client.disconnect();
         } else if (Server.getInstance().getDatabase().getPlayer(client, username)) {
             // Tell client a challenge message
             client.announce(PacketCreator.getChallenge(serverNonce));
         } else {
             // Tell client that the login process failed
-            client.announce(PacketCreator.getLoginError("Invalid username."));
+            client.announce(PacketCreator.getLoginError(ErrorConstants.LOGIN_ERROR));
         }
     }
 }

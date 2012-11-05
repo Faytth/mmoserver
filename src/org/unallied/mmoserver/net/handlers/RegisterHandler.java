@@ -1,8 +1,5 @@
 package org.unallied.mmoserver.net.handlers;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
 import org.unallied.mmocraft.tools.Authenticator;
 import org.unallied.mmocraft.tools.Hasher;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;

@@ -2,6 +2,7 @@ package org.unallied.mmoserver.server;
 
 import java.awt.Rectangle;
 
+import org.unallied.mmocraft.BlockType;
 import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.CollisionBlob;
 import org.unallied.mmocraft.Direction;
@@ -12,7 +13,7 @@ import org.unallied.mmocraft.animations.AnimationState;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.client.Game;
 import org.unallied.mmocraft.constants.WorldConstants;
-import org.unallied.mmocraft.net.sessions.TerrainSession;
+import org.unallied.mmocraft.sessions.TerrainSession;
 import org.unallied.mmocraft.skills.SkillType;
 import org.unallied.mmoserver.client.Client;
 import org.unallied.mmoserver.net.PacketCreator;
@@ -138,7 +139,7 @@ public class ServerPlayer extends Player {
             return;
         }
         CollisionBlob[] collisionArc = animation.getCollisionArc();
-        
+    
         // Guard
         if (collisionArc == null || startingIndex < 0 || endingIndex < 0 || 
                 startingIndex >= collisionArc.length || endingIndex >= collisionArc.length) {
@@ -184,6 +185,12 @@ public class ServerPlayer extends Player {
                             float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
                                     new Rectangle(WorldConstants.WORLD_BLOCK_WIDTH, WorldConstants.WORLD_BLOCK_HEIGHT), xOff, yOff);
                             if (damage > 0) {
+                            	int multipliedDamage = (int)Math.round(getDamageMultiplier() * damage);
+                            	
+                            	//if the block broke, tell everyone
+                            	if (World.getInstance().hasBlockBroken(x, y, multipliedDamage)) {
+                            		client.broadcast(this, PacketCreator.getBlockChanged(x, y, BlockType.AIR));
+                            	}
 //                                ts.setBlock(x, y, new AirBlock());
                                 // Update block damage
                                 // Broadcast the damage to everyone nearby

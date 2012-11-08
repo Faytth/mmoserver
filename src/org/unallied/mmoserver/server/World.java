@@ -7,17 +7,21 @@ import java.util.Random;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import libnoiseforjava.exception.ExceptionInvalidParam;
+import libnoiseforjava.module.Perlin;
+
 import org.unallied.mmocraft.BlockType;
 import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.Location;
+import org.unallied.mmocraft.RawPoint;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.constants.WorldConstants;
-import org.unallied.mmocraft.net.sessions.TerrainSession;
-import org.unallied.mmoserver.server.regions.*;
-
-
-import libnoiseforjava.exception.ExceptionInvalidParam;
-import libnoiseforjava.module.Perlin;
+import org.unallied.mmocraft.sessions.TerrainSession;
+import org.unallied.mmoserver.server.regions.DesertRegion;
+import org.unallied.mmoserver.server.regions.HillsRegion;
+import org.unallied.mmoserver.server.regions.PlainsRegion;
+import org.unallied.mmoserver.server.regions.Region;
+import org.unallied.mmoserver.server.regions.ShatteredRegion;
 
 /**
  * Contains methods needed to access any chunk in the world.
@@ -50,6 +54,11 @@ public class World {
      *  We will use regions to modify Perlin noise variables for world generation
      */
     private Region[][] regions = new Region[(int)WorldConstants.WORLD_REGIONS_WIDE][(int)WorldConstants.WORLD_REGIONS_TALL];
+    
+    /**
+     * Keeps track of damaged blocks
+     */
+    private HashMap<RawPoint, Long> blockDamageMap = new HashMap<RawPoint, Long>();
     
     /**
      * A map of all players by chunk id.  When a player moves from one chunk to another,
@@ -383,6 +392,44 @@ public class World {
         } catch (NullPointerException e) {
             return null;
         }
+    }
+    
+    private void setBlockDamaged(RawPoint point, long damage) {
+
+    	Long currentDamage = blockDamageMap.get(point);
+    	Long newDamage = currentDamage == null ? damage : currentDamage + damage;
+    			
+    	blockDamageMap.put(point, newDamage);
+    }
+    
+    private void removeDamagedBlock(RawPoint point) {
+    	blockDamageMap.remove(point);
+    }
+    
+    /**
+     * Checks if the damage applied will break a block. Keeps track of the damage done.
+     * If the block is broken, it removes the block from the list.
+     * @param x
+     * @param y
+     * @param damage
+     * @return
+     */
+    public boolean hasBlockBroken(long x, long y, long damage) {
+    	RawPoint newPoint = new RawPoint(x, y);
+    	
+    	//set the block as damaged
+    	setBlockDamaged(newPoint, damage);
+    	
+    	long maxHealth = getBlock(x, y).getMaximumHealth();
+    	long currentDamage = blockDamageMap.get(newPoint);
+    	
+    	//Check if damaged done is greater than block health
+    	if (currentDamage >= maxHealth) {
+    		removeDamagedBlock(newPoint);
+    		return true;
+    	}
+    	
+    	return false;
     }
 
     /**

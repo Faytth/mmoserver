@@ -2,7 +2,9 @@ package org.unallied.mmoserver.net;
 
 import java.util.Collection;
 
+import org.unallied.mmocraft.BlockType;
 import org.unallied.mmocraft.Player;
+import org.unallied.mmocraft.constants.WorldConstants;
 import org.unallied.mmocraft.gui.MessageType;
 import org.unallied.mmocraft.items.ItemData;
 import org.unallied.mmocraft.net.Packet;
@@ -239,5 +241,25 @@ public class PacketCreator {
 	    writer.writeLong(experience);
 	    
 	    return writer.getPacket();
+	}
+	
+	/**
+	 * Returns a packet containing that a block has changed at a specific (x, y)
+	 * @param x
+	 * @param y
+	 * @param newBlockType
+	 * @return
+	 */
+	public static Packet getBlockChanged(long x, long y, BlockType newBlockType) {
+        x = x >= 0 ? x % WorldConstants.WORLD_WIDTH : WorldConstants.WORLD_WIDTH + x;
+        y = y >= 0 ? y % WorldConstants.WORLD_HEIGHT : 0;
+		PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+		
+		writer.write(RecvOpcode.BLOCK_CHANGED);
+		writer.writeLong(x);
+		writer.writeLong(y);
+		writer.write(newBlockType.getValue());
+		
+		return writer.getPacket();
 	}
 }

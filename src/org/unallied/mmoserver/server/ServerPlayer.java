@@ -2,6 +2,7 @@ package org.unallied.mmoserver.server;
 
 import java.awt.Rectangle;
 
+import org.unallied.mmocraft.BlockType;
 import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.CollisionBlob;
 import org.unallied.mmocraft.Direction;
@@ -10,9 +11,7 @@ import org.unallied.mmocraft.Player;
 import org.unallied.mmocraft.RawPoint;
 import org.unallied.mmocraft.animations.AnimationState;
 import org.unallied.mmocraft.blocks.Block;
-import org.unallied.mmocraft.client.Game;
 import org.unallied.mmocraft.constants.WorldConstants;
-import org.unallied.mmocraft.sessions.TerrainSession;
 import org.unallied.mmocraft.skills.SkillType;
 import org.unallied.mmoserver.client.Client;
 import org.unallied.mmoserver.net.PacketCreator;
@@ -138,7 +137,7 @@ public class ServerPlayer extends Player {
             return;
         }
         CollisionBlob[] collisionArc = animation.getCollisionArc();
-        
+    
         // Guard
         if (collisionArc == null || startingIndex < 0 || endingIndex < 0 || 
                 startingIndex >= collisionArc.length || endingIndex >= collisionArc.length) {
@@ -150,7 +149,6 @@ public class ServerPlayer extends Player {
             do {
                 curIndex = (curIndex + 1) % collisionArc.length;
                 
-                TerrainSession ts = Game.getInstance().getClient().getTerrainSession();
                 Location topLeft = new Location(this.location);
                 if (direction == Direction.RIGHT) {
                     topLeft.moveDown(verticalOffset + collisionArc[curIndex].getYOffset());
@@ -173,7 +171,7 @@ public class ServerPlayer extends Player {
                  */
                 for (long x = topLeft.getX(); x <= bottomRight.getX(); ++x) {
                     for (long y = topLeft.getY(); y <= bottomRight.getY(); ++y) {
-                        if (ts.getBlock(x, y).isCollidable() || true) {
+                        if (World.getInstance().getBlock(x, y).isCollidable()) {
                             int xOff = 0;
                             if (direction == Direction.RIGHT) {
                                 xOff = (int) (((x - this.location.getX()) * WorldConstants.WORLD_BLOCK_WIDTH - horizontalOffset - collisionArc[curIndex].getXOffset() - this.location.getXOffset()));
@@ -184,6 +182,12 @@ public class ServerPlayer extends Player {
                             float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
                                     new Rectangle(WorldConstants.WORLD_BLOCK_WIDTH, WorldConstants.WORLD_BLOCK_HEIGHT), xOff, yOff);
                             if (damage > 0) {
+                            	int multipliedDamage = (int)Math.round(getDamageMultiplier() * damage);
+                            	
+                            	//if the block broke, tell everyone
+                            	if (World.getInstance().hasBlockBroken(x, y, multipliedDamage)) {
+                            		client.broadcast(this, PacketCreator.getBlockChanged(x, y, World.getInstance().getBlock(x, y).getType()));
+                            	}
 //                                ts.setBlock(x, y, new AirBlock());
                                 // Update block damage
                                 // Broadcast the damage to everyone nearby

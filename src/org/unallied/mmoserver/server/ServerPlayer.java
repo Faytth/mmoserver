@@ -12,7 +12,7 @@ import org.unallied.mmocraft.animations.AnimationState;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.client.Game;
 import org.unallied.mmocraft.constants.WorldConstants;
-import org.unallied.mmocraft.net.sessions.TerrainSession;
+import org.unallied.mmocraft.sessions.TerrainSession;
 import org.unallied.mmocraft.skills.SkillType;
 import org.unallied.mmoserver.client.Client;
 import org.unallied.mmoserver.net.PacketCreator;

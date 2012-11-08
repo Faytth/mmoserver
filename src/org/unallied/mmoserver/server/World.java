@@ -12,7 +12,7 @@ import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.Location;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.constants.WorldConstants;
-import org.unallied.mmocraft.net.sessions.TerrainSession;
+import org.unallied.mmocraft.sessions.TerrainSession;
 import org.unallied.mmoserver.server.regions.*;
 
 

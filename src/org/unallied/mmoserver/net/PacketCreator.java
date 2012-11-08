@@ -28,7 +28,7 @@ public class PacketCreator {
     public static Packet getPing() {
         // Create a new packet writer with 2 bytes (opcode only)
         PacketLittleEndianWriter writer = new PacketLittleEndianWriter(2);
-        writer.write(RecvOpcode.PING);
+        writer.write(RecvOpcode.PONG);
         return writer.getPacket();
     }
     

@@ -388,7 +388,8 @@ public class World {
      */
     public Block getBlock(long x, long y) {
         x = x >= 0 ? x % WorldConstants.WORLD_WIDTH : WorldConstants.WORLD_WIDTH + x;
-        y = y >= 0 ? y % WorldConstants.WORLD_HEIGHT : 0;
+        y = y >= 0 ? y : 0;
+        y = y >= WorldConstants.WORLD_HEIGHT ? WorldConstants.WORLD_HEIGHT - 1 : y;
         try {
             return BlockType.fromValue(blocks[(int) (x)][(int) (y)]).getBlock();
         } catch (NullPointerException e) {
@@ -418,7 +419,8 @@ public class World {
      */
     public boolean hasBlockBroken(long x, long y, long damage) {
         x = x >= 0 ? x % WorldConstants.WORLD_WIDTH : WorldConstants.WORLD_WIDTH + x;
-        y = y >= 0 ? y % WorldConstants.WORLD_HEIGHT : 0;
+        y = y >= 0 ? y: 0;
+        y = y >= WorldConstants.WORLD_HEIGHT ? WorldConstants.WORLD_HEIGHT - 1 : y;
     	RawPoint newPoint = new RawPoint(x, y);
     	
     	//set the block as damaged

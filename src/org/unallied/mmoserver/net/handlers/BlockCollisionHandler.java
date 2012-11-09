@@ -8,17 +8,20 @@ public class BlockCollisionHandler extends AbstractServerPacketHandler {
 
     @Override
     /**
-     * A message containing 
+     * A message containing [animationID][startingIndex][endingIndex][horizontalOffset]
+     * [verticalOffset].  Offsets are the offsets for the animation from the player location.
      * This is sent every time the player successfully attacks a block.  The server
      * needs to verify which, if any, blocks the player hit as well as whether the
      * player was able to attack in their current state.
      */
     public void handlePacket(SeekableLittleEndianAccessor slea, Client client) {
-    	int startingIndex = slea.readInt();
-    	int endingIndex = slea.readInt();
+        // TODO: Add check to ensure player was in this animation state.
+    	int startingIndex      = slea.readInt();
+    	int endingIndex        = slea.readInt();
     	float horizontalOffset = slea.readFloat();
-    	float verticalOffset = slea.readFloat();
+    	float verticalOffset   = slea.readFloat();
     	
-    	client.getPlayer().doCollisionChecks(client.getPlayer().getState(), startingIndex, endingIndex, horizontalOffset, verticalOffset);
+    	client.getPlayer().doCollisionChecks(client.getPlayer().getState(), 
+    	        startingIndex, endingIndex, horizontalOffset, verticalOffset);
     }
 }

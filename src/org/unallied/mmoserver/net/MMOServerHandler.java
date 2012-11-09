@@ -26,12 +26,11 @@ public class MMOServerHandler extends IoHandlerAdapter {
     
     @Override
     public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
-        System.out.println("Exception occurred.  Closing connection for: " + session.getRemoteAddress());
         // If client was forcibly closed
         if (cause instanceof IOException) {
             session.close(true);
         } else {
-            
+            System.out.println("Exception occurred.  Closing connection for: " + session.getRemoteAddress());
             session.close(true);
             PrintError.print(PrintError.EXCEPTION_CAUGHT, cause);
         }

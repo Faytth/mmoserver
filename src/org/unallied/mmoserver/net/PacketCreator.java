@@ -252,7 +252,8 @@ public class PacketCreator {
 	 */
 	public static Packet getBlockChanged(long x, long y, BlockType newBlockType) {
         x = x >= 0 ? x % WorldConstants.WORLD_WIDTH : WorldConstants.WORLD_WIDTH + x;
-        y = y >= 0 ? y % WorldConstants.WORLD_HEIGHT : 0;
+        y = y >= 0 ? y : 0;
+        y = y >= WorldConstants.WORLD_HEIGHT ? WorldConstants.WORLD_HEIGHT - 1 : y;
 		PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
 		
 		writer.write(RecvOpcode.BLOCK_CHANGED);

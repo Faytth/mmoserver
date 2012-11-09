@@ -2,7 +2,6 @@ package org.unallied.mmoserver.server;
 
 import java.awt.Rectangle;
 
-import org.unallied.mmocraft.BlockType;
 import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.CollisionBlob;
 import org.unallied.mmocraft.Direction;
@@ -136,7 +135,12 @@ public class ServerPlayer extends Player {
         if (animation == null) {
             return;
         }
-        CollisionBlob[] collisionArc = animation.getCollisionArc();
+        CollisionBlob[] collisionArc = null;
+        try {
+            collisionArc = animation.getCollisionArc();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     
         // Guard
         if (collisionArc == null || startingIndex < 0 || endingIndex < 0 || 
@@ -196,7 +200,7 @@ public class ServerPlayer extends Player {
                     }
                 }
             } while (curIndex != endingIndex);
-        } catch (ArrayIndexOutOfBoundsException e) {
+        } catch (Exception e) {
             e.printStackTrace(); // This should only happen if someone screwed up the arc image...
         }
     }

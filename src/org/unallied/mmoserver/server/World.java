@@ -501,6 +501,7 @@ public class World {
     /**
      * Moves a player to a new chunk if necessary.  Does not actually update the player's
      * location.
+     * FIXME:  I received errors about a null pointer exception stemming from this. (line 515).
      * @param player The player whose chunk needs updating
      * @param location The player's new location
      */

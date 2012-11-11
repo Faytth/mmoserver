@@ -222,6 +222,9 @@ public class PacketCreator {
 	    
 	    writer.write(RecvOpcode.PLAYER_INFO);
 	    writer.writeInt(player.getId());
+	    writer.writeInt(player.getHpMax());
+	    writer.writeInt(player.getHpCurrent());
+	    writer.writeLong(player.getPvPTime());
 	    writer.writePrefixedAsciiString(player.getName());
 	    
 	    return writer.getPacket();
@@ -263,4 +266,58 @@ public class PacketCreator {
 		
 		return writer.getPacket();
 	}
+
+	/**
+	 * Creates a pong packet for a response to a client ping packet.  Helps the
+	 * client know its latency and the time difference between client and server.
+	 * @param clientTime Passed from the original send packet by the client.
+	 *                   Contains the client's time that they sent this packet.
+	 * @return packet
+	 */
+    public static Packet getPong(long clientTime) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.PONG);
+        writer.writeLong(clientTime);
+        writer.writeLong(System.currentTimeMillis());
+        
+        return writer.getPacket();
+    }
+    
+    /**
+     * 
+     * @param player The player whose PvP time is being updated.
+     * @return packet
+     */
+    public static Packet getPvPToggleResponse(Player player) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.PVP_TOGGLE_RESPONSE);
+        writer.writeInt(player.getId());
+        writer.writeLong(player.getPvPTime());
+        
+        return writer.getPacket();
+    }
+
+    /**
+     * Creates a PvP damaged packet which informs the client of who attacked who
+     * and the amount of damage dealt.
+     * @param source The source of the damage.  This is the player that attacked the other player.
+     * @param damagedPlayer The damaged player.
+     * @param damageDealt The amount of damage inflicted.
+     * @param hpCurrent The new HP that the damaged player has.
+     * @return packet
+     */
+    public static Packet getPvPPlayerDamaged(ServerPlayer source,
+            ServerPlayer damagedPlayer, int damageDealt, int hpCurrent) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.PVP_PLAYER_DAMAGED);
+        writer.writeInt(source.getId());
+        writer.writeInt(damagedPlayer.getId());
+        writer.writeInt(damageDealt);
+        writer.writeInt(hpCurrent);
+
+        return writer.getPacket();
+    }
 }

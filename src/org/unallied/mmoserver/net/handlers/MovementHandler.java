@@ -5,6 +5,7 @@ import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.Direction;
 import org.unallied.mmocraft.Velocity;
 import org.unallied.mmocraft.animations.AnimationType;
+import org.unallied.mmocraft.tools.Authenticator;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 import org.unallied.mmoserver.client.Client;
 import org.unallied.mmoserver.net.PacketCreator;
@@ -21,6 +22,9 @@ public class MovementHandler extends AbstractServerPacketHandler {
      */
     public void handlePacket(SeekableLittleEndianAccessor slea, Client client) {
         ServerPlayer p = client.getPlayer();
+        if (p == null || !Authenticator.canPlayerMove(p)) {
+            return;
+        }
         // TODO:  Perform check to ensure that player isn't lying about their location
         // Tell the world that the player has moved
         BoundLocation location = BoundLocation.getLocation(slea);

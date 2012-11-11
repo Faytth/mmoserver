@@ -17,19 +17,14 @@ public class ChunkHandler extends AbstractServerPacketHandler {
 
     @Override
     public void handlePacket(SeekableLittleEndianAccessor slea, Client client) {
+        if (slea.available() != 8) { // Guard
+            return;
+        }
         /**
          *  Grab the chunk ID x and y coords.  We can do this because of how a
          *  chunkId is formatted
          */
         long chunkId = slea.readLong();
-//        int x = (int) ((chunkId << 32) >> 32);
-//        int y = (int) (chunkId >> 32);
-        
-        // Bounds-check the chunk
-/*        if (x < 0 || x >= ServerConstants.WORLD_CHUNKS_WIDE || y < 0
-                || y >= ServerConstants.WORLD_CHUNKS_TALL) {
-            return; // Nothing to do... out of bounds.
-        }*/
         
         // Make sure the client is able to request this chunk
         // FIXME This needs to be implemented to prevent an exploit!

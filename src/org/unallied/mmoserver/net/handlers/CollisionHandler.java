@@ -1,10 +1,11 @@
 package org.unallied.mmoserver.net.handlers;
 
+import org.unallied.mmocraft.tools.Authenticator;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 import org.unallied.mmoserver.client.Client;
 
 
-public class BlockCollisionHandler extends AbstractServerPacketHandler {
+public class CollisionHandler extends AbstractServerPacketHandler {
 
     @Override
     /**
@@ -15,7 +16,9 @@ public class BlockCollisionHandler extends AbstractServerPacketHandler {
      * player was able to attack in their current state.
      */
     public void handlePacket(SeekableLittleEndianAccessor slea, Client client) {
-        // TODO: Add check to ensure player was in this animation state.
+        if (slea.available() != 16 || Authenticator.canPlayerAttack(client.getPlayer())) { // Guard
+            return;
+        }
     	int startingIndex      = slea.readInt();
     	int endingIndex        = slea.readInt();
     	float horizontalOffset = slea.readFloat();

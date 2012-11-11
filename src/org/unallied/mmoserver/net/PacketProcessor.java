@@ -60,6 +60,7 @@ public class PacketProcessor {
     public void reset() {
         handlers.clear();
         
+        registerHandler(SendOpcode.PING, new PingHandler());
         registerHandler(SendOpcode.LOGON, new LogonHandler());
         registerHandler(SendOpcode.CREDS, new CredsHandler());
         registerHandler(SendOpcode.CHUNK, new ChunkHandler());
@@ -67,6 +68,7 @@ public class PacketProcessor {
         registerHandler(SendOpcode.REGISTER, new RegisterHandler());
         registerHandler(SendOpcode.CHAT_MESSAGE, new ChatMessageHandler());
         registerHandler(SendOpcode.PLAYER_INFO, new PlayerInfoHandler());
-        registerHandler(SendOpcode.BLOCK_COLLISION, new BlockCollisionHandler());
+        registerHandler(SendOpcode.BLOCK_COLLISION, new CollisionHandler());
+        registerHandler(SendOpcode.PVP_TOGGLE, new PvPToggleHandler());
     }
 }

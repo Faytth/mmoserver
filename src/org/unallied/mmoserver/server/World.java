@@ -397,8 +397,13 @@ public class World {
         }
     }
     
-    private void setBlockDamaged(RawPoint point, long damage) {
-
+    /**
+     * Deals <code>damage</code> to the block at the specified point.
+     * @param point The coordinates of the block (each block is 1 unit).
+     * @param damage The amount of damage dealt.
+     * @param playerId The player inflicting the damage.
+     */
+    private void setBlockDamaged(RawPoint point, long damage, int playerId) {
     	Long currentDamage = blockDamageMap.get(point);
     	Long newDamage = currentDamage == null ? damage : currentDamage + damage;
     			
@@ -412,25 +417,28 @@ public class World {
     /**
      * Checks if the damage applied will break a block. Keeps track of the damage done.
      * If the block is broken, it removes the block from the list.
-     * @param x
-     * @param y
-     * @param damage
-     * @return
+     * @param playerId The player who damaged the block.  Used for keeping track of
+     *                 who receives the block as an item and gets exp.
+     * @param x The x location of the block.  Each block counts as 1 unit.
+     * @param y The y location of the block.  Each block counts as 1 unit.
+     * @param damage The amount of damage dealt to the block.
+     * @return True if the block has broken, else false.
      */
-    public boolean hasBlockBroken(long x, long y, long damage) {
+    public boolean hasBlockBroken(int playerId, long x, long y, long damage) {
         x = x >= 0 ? x % WorldConstants.WORLD_WIDTH : WorldConstants.WORLD_WIDTH + x;
         y = y >= 0 ? y: 0;
         y = y >= WorldConstants.WORLD_HEIGHT ? WorldConstants.WORLD_HEIGHT - 1 : y;
     	RawPoint newPoint = new RawPoint(x, y);
     	
     	//set the block as damaged
-    	setBlockDamaged(newPoint, damage);
+    	setBlockDamaged(newPoint, damage, playerId);
     	
     	long maxHealth = getBlock(x, y).getMaximumHealth();
     	long currentDamage = blockDamageMap.get(newPoint);
     	
     	//Check if damaged done is greater than block health
     	if (currentDamage >= maxHealth) {
+    	    // Reward 
     	    blocks[(int)newPoint.getX()][(int)newPoint.getY()] = BlockType.AIR.getValue();
     		removeDamagedBlock(newPoint);
     		return true;

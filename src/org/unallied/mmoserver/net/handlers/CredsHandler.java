@@ -60,8 +60,8 @@ public class CredsHandler extends AbstractServerPacketHandler {
             ServerPlayer sp = client.getPlayer();
             Player p = new Player();
             p.setDirection(sp.getDirection());
-            p.setHpCurrent(sp.getHpCurrent());
             p.setHpMax(sp.getHpMax());
+            p.setHpCurrent(sp.getHpCurrent());
             p.setId(sp.getId());
             p.setLocation(sp.getLocation());
             p.setName(sp.getName());

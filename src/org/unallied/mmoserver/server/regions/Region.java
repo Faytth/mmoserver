@@ -164,4 +164,19 @@ public abstract class Region {
      */
     public abstract byte getBlock(double value);
 
+    /**
+     * Retrieves the x coordinate of this region.
+     * @return x
+     */
+    public int getX() {
+    	return x;
+    }
+    
+    /**
+     * Retrieves the y coordinate of this region.
+     * @return y
+     */
+    public int getY() {
+    	return y;
+    }
 }

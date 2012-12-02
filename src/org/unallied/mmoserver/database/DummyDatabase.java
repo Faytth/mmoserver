@@ -7,6 +7,7 @@ import org.unallied.mmocraft.constants.ClientConstants;
 import org.unallied.mmocraft.items.Item;
 import org.unallied.mmocraft.items.ItemData;
 import org.unallied.mmocraft.items.ItemManager;
+import org.unallied.mmocraft.items.ItemType;
 import org.unallied.mmocraft.tools.Hasher;
 import org.unallied.mmoserver.client.Client;
 import org.unallied.mmoserver.server.ServerPlayer;
@@ -40,24 +41,27 @@ public class DummyDatabase implements DatabaseAccessor {
         ServerPlayer player = new ServerPlayer();
         player.setHpMax(100);
         player.setHpCurrent(player.getHpMax());
-        player.setId(accountId++);
-        player.setName("Test" + accountId);
+        player.setId(accountId);
+        player.setName("Test" + accountId++);
         player.setLocation(new BoundLocation(0, 0, 0, 0));
         // Kludge:  Create player on land
         player.init();
         player.accelerateDown(100000, 10000f, 10000f);
+        player.update(100000);
+        player.setClientLocation(new BoundLocation(player.getLocation()));
         // Add all items in the item manager to the dummy character
         Collection<ItemData> itemData = ItemManager.getAllItemData();
         for (ItemData data : itemData) {
             try {
-                player.getInventory().addItem(new Item(data.getId()), ClientConstants.MAX_ITEM_STACK);
+                if (data.getType() != ItemType.BLOCKS) {
+                    player.getInventory().addItem(new Item(data.getId()), ClientConstants.MAX_ITEM_STACK);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
         // Set the dummy's gold to max.  Why not?
         player.getInventory().setGold(Long.MAX_VALUE);
-        player.getInventory().addGold(1);
         
         // Assign the player to the client
         client.setPlayer(player);

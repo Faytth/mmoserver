@@ -9,11 +9,13 @@ import org.unallied.mmocraft.Direction;
 import org.unallied.mmocraft.Location;
 import org.unallied.mmocraft.Player;
 import org.unallied.mmocraft.RawPoint;
+import org.unallied.mmocraft.Velocity;
 import org.unallied.mmocraft.animations.AnimationState;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.constants.ClientConstants;
 import org.unallied.mmocraft.constants.WorldConstants;
 import org.unallied.mmocraft.geom.LongRectangle;
+import org.unallied.mmocraft.items.Item;
 import org.unallied.mmocraft.net.Packet;
 import org.unallied.mmocraft.skills.SkillType;
 import org.unallied.mmoserver.client.Client;
@@ -36,6 +38,9 @@ public class ServerPlayer extends Player {
     private long lastUpdateTime = 0;
     
     private Client client = null;
+    
+    /** The last known location of this player on the client. */
+    private BoundLocation clientLocation = null;
     
     public Client getClient() {
         return client;
@@ -66,31 +71,34 @@ public class ServerPlayer extends Player {
         accelerateDown((int)delta, ClientConstants.FALL_ACCELERATION * current.moveDownMultiplier(), 
                 ClientConstants.FALL_TERMINAL_VELOCITY * current.moveDownMultiplier());
         
-        float xVelocity = velocity.getX();
-        float yVelocity = velocity.getY();
-        float fallVelocity = fallSpeed;
-        velocity.setY(0);
-        fallSpeed = 0;
-        move((int)delta);
-        velocity.setY(yVelocity);
-        fallSpeed = fallVelocity;
-        velocity.setX(0);
-        move((int)delta);
-        velocity.setX(xVelocity);
+        Velocity newVelocity = new Velocity(velocity);
+        newVelocity.setY(0);
+        move((int)delta, newVelocity, 0, 0);
+        newVelocity.setY(velocity.getY());
+        newVelocity.setX(0);
+        move((int)delta, newVelocity, fallSpeed, initialVelocity);
         
         current.update(delta);
         if (isStuck()) {
             location = tempLocation;
         }
         unstuck();
+        lastUpdateTime = System.currentTimeMillis();
     }
     
     public void update() {
-        if (lastUpdateTime != 0) {
-            long curTime = System.currentTimeMillis();
-            update(curTime - lastUpdateTime);
-            lastUpdateTime = curTime;
+        if (lastUpdateTime == 0) {
+            lastUpdateTime = System.currentTimeMillis();
         }
+        long curTime = System.currentTimeMillis();
+        update(curTime - lastUpdateTime);
+        lastUpdateTime = curTime; // Override the last update time
+    }
+    
+    @Override
+    public void setLocation(BoundLocation location) {
+        this.location = location;
+        lastUpdateTime = System.currentTimeMillis();
     }
     
     @Override
@@ -109,43 +117,21 @@ public class ServerPlayer extends Player {
      * @param vf final downwards velocity
      * @return
      */
-    public Location collide(Location start, Location end, float vf) {
+    public Location collide(Location start, Location end) {
         Location result = new BoundLocation(start);
-        try {            
-            // We split this into horizontal then vertical testing.
-            Location horizontalEnd = new BoundLocation(start);
-            horizontalEnd.setX(end.getX());
-            horizontalEnd.setXOffset(end.getXOffset());
+        try {
             World world = World.getInstance();
             
             // If air
-            Location horizontalCollide = new BoundLocation(world.collideWithBlock(start, horizontalEnd));
-            if (horizontalCollide.equals(horizontalEnd)) {
-                result.setX(end.getX());
-                result.setXOffset(end.getXOffset());
-            }
+            Location horizontalCollide = new BoundLocation(world.collideWithBlock(start, end));
+            result.setRawX(horizontalCollide.getRawX());
             
             // Vertical testing
-            if (end.getY() != start.getY() || end.getYOffset() != start.getYOffset()) {
+            if (end.getRawY() != start.getRawY()) {
                 Location verticalEnd = new BoundLocation(result);
-                verticalEnd.setY(end.getY());
-                verticalEnd.setYOffset(end.getYOffset());
-                
-                // If air
-                Location verticalCollide = new BoundLocation(world.collideWithBlock(result, verticalEnd));
-                // If we didn't hit anything
-                if (verticalCollide.equals(verticalEnd)) {
-                    fallSpeed = vf;
-                    if (fallSpeed > 0.0f) { // tell our state that our player is falling
-                        current.fall();
-                    }
-                } else if (fallSpeed < 0.0f) { // We hit the ceiling!
-                    fallSpeed = 0.0f;
-                } else { // we landed on something!
-                    current.land(); // tell our state that our player has landed on the ground
-                    fallSpeed = 0.0f;
-                }
-                result = verticalCollide;
+                verticalEnd.setRawY(horizontalCollide.getRawY());
+                               
+                result = horizontalCollide;
             }
         } catch (NullPointerException e) {
             
@@ -224,11 +210,7 @@ public class ServerPlayer extends Player {
                             int multipliedDamage = (int)Math.round(getBlockDamageMultiplier() * damage);
                             
                             //if the block broke, tell everyone
-                            if (World.getInstance().hasBlockBroken(getId(), x, y, multipliedDamage)) {
-                                client.broadcast(this, PacketCreator.getBlockChanged(x, y, World.getInstance().getBlock(x, y).getType()));
-                            }
-                            // Update block damage
-                            // Broadcast the damage to everyone nearby
+                            World.getInstance().doDamage(getId(), x, y, multipliedDamage);
                         }
                     }
                 }
@@ -371,73 +353,12 @@ public class ServerPlayer extends Player {
         }
     
         try {
+            update();
             performBlockCollisions(collisionArc, startingIndex, endingIndex, horizontalOffset, verticalOffset);
             performPlayerCollisions(collisionArc, startingIndex, endingIndex, horizontalOffset, verticalOffset);
         } catch (Exception e) {
             e.printStackTrace(); // This should only happen if someone screwed up the arc image...
         }
-    }
-    
-    /**
-     * Accelerates player downwards.
-     * @param delta The time in milliseconds to accelerate downwards
-     * @param acceleration The acceleration rate of the fall in pixels
-     * @param terminalVelocity The maximum velocity in pixels
-     */
-    public void accelerateDown(int delta, float acceleration, float terminalVelocity) {
-        // Guard
-        if (hitbox == null) {
-            init();
-        }
-        
-        // FIXME:  This is a bit incorrect
-        boolean hitSomething = false;  // true if we hit something
-        float t = delta / 1000.0f;
-        float vf = fallSpeed + ((terminalVelocity - fallSpeed) / terminalVelocity) * t * acceleration;
-        if (vf > terminalVelocity) {
-            vf = terminalVelocity;
-        }
-        RawPoint distance = new RawPoint(0, (long) ((((velocity.getY() + vf) / 2.0f) * t) / WorldConstants.WORLD_BLOCK_HEIGHT * Location.BLOCK_GRANULARITY));
-        
-        World world = World.getInstance();
-        
-        // Iterate over all points in our hit box, and fix our end location as needed.
-        for (RawPoint p : hitbox) {
-            // our location should be the top-left corner.  Fix offsets as needed for start / end
-            Location start = new BoundLocation(location);
-            start.moveRawRight(p.getX());
-            start.moveRawDown(p.getY());
-            Location end = new BoundLocation(start);
-            end.moveRawRight(distance.getX());
-            end.moveRawDown(distance.getY());
-            
-            // Get our new location
-            Location newEnd = new BoundLocation(world.collideWithBlock(start, end));
-            
-            hitSomething |= !newEnd.equals(end);
-            
-            // We now need to fix our distance based on our new end
-            distance.setLocation(
-                    newEnd.getRawX() - start.getRawX(), 
-                    newEnd.getRawY() - start.getRawY());
-        }
-        
-        // If we didn't hit anything
-        if (!hitSomething) {
-            fallSpeed = vf;
-            if (fallSpeed > 0.0f) { // tell our state that our player is falling
-                current.fall();
-            }
-        } else if (fallSpeed < 0.0f) { // We hit the ceiling!
-            fallSpeed = 0.0f;
-        } else { // we landed on something!
-            current.land(); // tell our state that our player has landed on the ground
-            fallSpeed = 0.0f;
-        }
-        
-        // Our distance is now the farthest we can travel
-        location.moveRawRight(distance.getX());
-        location.moveRawDown(distance.getY());
     }
     
     public void addExperience(SkillType type, long experience) {
@@ -492,5 +413,36 @@ public class ServerPlayer extends Player {
     public void setFallSpeed(float fallSpeed) {
         this.fallSpeed = fallSpeed;
         lastUpdateTime = System.currentTimeMillis();
+    }
+
+    /**
+     * Retrieves the last location that the client told us this player was at.
+     * This is needed because of the player pool in the server, which needs to
+     * know where a player is in order to remove it from its associated chunk.
+     * If a separate location was not kept for the client's last location,
+     * then we would need to update the location in the player pool on every
+     * single player update or player movement.  This would cause an 
+     * unnecessary burden on the server because of the write locks.
+     * @return clientLocation
+     */
+    public BoundLocation getClientLocation() {
+        return clientLocation;
+    }
+    
+    public void setClientLocation(BoundLocation clientLocation) {
+        this.clientLocation = clientLocation;
+    }
+
+    /**
+     * Adds an item to the player's inventory, notifying the client of the
+     * change if any changes occurred.
+     * @param itemId The id of the item being added.
+     * @param quantity The number of the item to add.
+     */
+    public void addItem(int itemId, long quantity) {
+        inventory.addItem(new Item(itemId),  quantity);
+        // TODO:  Make addItem / removeItem return a boolean if the value was changed.
+        client.announce(PacketCreator.getSetItem(itemId, 
+                inventory.getQuantity(itemId)));
     }
 }

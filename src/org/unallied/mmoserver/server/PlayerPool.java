@@ -1,6 +1,6 @@
 package org.unallied.mmoserver.server;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -19,12 +19,10 @@ public class PlayerPool {
     private final Lock readLock = locks.readLock();
     private final Lock writeLock = locks.writeLock();
     
-    /** Iteration is probably important, and we might add/remove players inside
-     * of a loop.  If this is a normal HashMap, this will undoubtedly cause
-     * problems.  We might be able to get away with changing this later on
-     * if our code is well thought out to avoid this issue.
+    /** 
+     * Contains all players.
      */
-    private final Map<Integer, ServerPlayer> pool = new LinkedHashMap<Integer, ServerPlayer>();
+    private final Map<Integer, ServerPlayer> pool = new HashMap<Integer, ServerPlayer>();
     
     /**
      * Adds a player to the player pool
@@ -88,15 +86,13 @@ public class PlayerPool {
         if (playerId == null) {
             return null;
         }
-        ServerPlayer result = null;
-        
+        ServerPlayer result;
         readLock.lock();
         try {
             result = pool.get(playerId);
         } finally {
             readLock.unlock();
         }
-        
         return result;
     }
 }

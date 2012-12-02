@@ -10,10 +10,10 @@ import org.unallied.mmocraft.constants.WorldConstants;
  *
  */
 public class HillsRegion extends Region {
-    private static final double frequency   = 0.0001;
-    private static final double lacunarity  = 2.0;
-    private static final double persistence = 0.01;
-    private static final int octaveCount    = 2;
+    private static final double frequency   = 0.00015;
+    private static final double lacunarity  = 1.0;
+    private static final double persistence = 0.75;
+    private static final int octaveCount    = 6;
 
     /**
      * 

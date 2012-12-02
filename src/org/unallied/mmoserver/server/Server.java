@@ -2,8 +2,8 @@ package org.unallied.mmoserver.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
-
 
 import org.apache.mina.core.filterchain.IoFilter;
 import org.apache.mina.core.service.IoAcceptor;
@@ -12,15 +12,16 @@ import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.constants.ClientConstants;
 import org.unallied.mmocraft.constants.ServerConstants;
 import org.unallied.mmocraft.items.ItemManager;
 import org.unallied.mmocraft.net.Packet;
-import org.unallied.mmoserver.net.PacketCreator;
 import org.unallied.mmoserver.client.Client;
 import org.unallied.mmoserver.database.DatabaseAccessor;
 import org.unallied.mmoserver.database.DummyDatabase;
 import org.unallied.mmoserver.net.MMOServerHandler;
+import org.unallied.mmoserver.net.PacketCreator;
 import org.unallied.mmoserver.net.PacketProcessor;
 import org.unallied.mmoserver.net.mina.MMOCodecFactory;
 
@@ -40,7 +41,10 @@ public class Server {
     private DatabaseAccessor database = new DummyDatabase();
     
     private IoAcceptor acceptor;
-        
+    
+    /** True if the server is online.  False if the server should stop running. */
+    private boolean online = true;
+    
     /**
      * Private constructor for Singleton pattern
      */
@@ -63,6 +67,7 @@ public class Server {
     private void init() {
         ItemManager.load(ServerConstants.ITEM_PACK_LOCATION);
         World.getInstance().generateWorld();
+        (new Thread(new ServerUpdater())).start();
     }
         
     /**
@@ -121,6 +126,8 @@ public class Server {
      */
     public void shutdown() {
         acceptor.unbind();
+        
+        online = false;
     }
     
     /**
@@ -136,7 +143,7 @@ public class Server {
      * @return
      */
     public boolean isOnline() {
-        return true;
+        return online;
     }
     
     public static void main(String args[]) {
@@ -161,6 +168,30 @@ public class Server {
 		return database;
 	}
 
+    /**
+     * Broadcasts to all players near this location.
+     * @param location The location to center the broadcast around.
+     * @param packet the packet to broadcast
+     */
+    public void localBroadcast(BoundLocation location, Packet packet) {
+        /*
+         *  For all chunks in the drawn radius (see constants) of the player's
+         *  chunk, send a packet to the players in the chunk.
+         */
+        List<ServerPlayer> players = World.getInstance().getNearbyPlayers(location);
+        for (ServerPlayer p : players) {
+            try {
+                p.getClient().announce(packet);
+            } catch (NullPointerException e) {
+                if (p.getClient() != null) {
+                    logout(p.getClient());
+                } else {
+                    World.getInstance().removePlayer(p);
+                }
+            }
+        }
+    }
+	
 	/**
 	 * Broadcasts the packet to all players on the server.
 	 * @param packet the packet to broadcast
@@ -170,7 +201,7 @@ public class Server {
 	}
 
 	/**
-	 * Retrieves a player from the server if they're online.  Otherwise returns
+	 * Sends a player's info to the client if they're online.  Otherwise returns
 	 * null.
 	 * @param client The client requesting the information.
 	 * @param playerId The id of the player whose information is being requested.
@@ -180,5 +211,15 @@ public class Server {
         if (player != null) {
             client.announce(PacketCreator.getPlayerInfo(player));
         }
+    }
+    
+    /**
+     * Retrieves a player from the server if they're online.  Otherwise returns
+     * null.
+     * @param playerId The id of the player whose information is being requested.
+     * @return player
+     */
+    public ServerPlayer getPlayer(int playerId) {
+        return players.getPlayer(playerId);
     }
 }

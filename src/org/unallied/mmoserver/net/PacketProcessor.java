@@ -70,5 +70,6 @@ public class PacketProcessor {
         registerHandler(SendOpcode.PLAYER_INFO, new PlayerInfoHandler());
         registerHandler(SendOpcode.BLOCK_COLLISION, new CollisionHandler());
         registerHandler(SendOpcode.PVP_TOGGLE, new PvPToggleHandler());
+        registerHandler(SendOpcode.ITEM_DATA, new ItemDataHandler());
     }
 }

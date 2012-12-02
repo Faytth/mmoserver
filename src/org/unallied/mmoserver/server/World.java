@@ -17,6 +17,7 @@ import org.unallied.mmocraft.RawPoint;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.constants.WorldConstants;
 import org.unallied.mmocraft.sessions.TerrainSession;
+import org.unallied.mmoserver.net.PacketCreator;
 import org.unallied.mmoserver.server.regions.DesertRegion;
 import org.unallied.mmoserver.server.regions.HillsRegion;
 import org.unallied.mmoserver.server.regions.PlainsRegion;
@@ -51,14 +52,11 @@ public class World {
     private byte[][] blocks = new byte[(int)WorldConstants.WORLD_WIDTH][(int)WorldConstants.WORLD_HEIGHT];
     
     /**
-     *  We will use regions to modify Perlin noise variables for world generation
+     *  We will use regions to modify Perlin noise variables for world generation.
      */
     private Region[][] regions = new Region[(int)WorldConstants.WORLD_REGIONS_WIDE][(int)WorldConstants.WORLD_REGIONS_TALL];
     
-    /**
-     * Keeps track of damaged blocks
-     */
-    private HashMap<RawPoint, Long> blockDamageMap = new HashMap<RawPoint, Long>();
+    private BlockDamage blockDamage = new BlockDamage();
     
     /**
      * A map of all players by chunk id.  When a player moves from one chunk to another,
@@ -398,25 +396,8 @@ public class World {
     }
     
     /**
-     * Deals <code>damage</code> to the block at the specified point.
-     * @param point The coordinates of the block (each block is 1 unit).
-     * @param damage The amount of damage dealt.
-     * @param playerId The player inflicting the damage.
-     */
-    private void setBlockDamaged(RawPoint point, long damage, int playerId) {
-    	Long currentDamage = blockDamageMap.get(point);
-    	Long newDamage = currentDamage == null ? damage : currentDamage + damage;
-    			
-    	blockDamageMap.put(point, newDamage);
-    }
-    
-    private void removeDamagedBlock(RawPoint point) {
-    	blockDamageMap.remove(point);
-    }
-    
-    /**
-     * Checks if the damage applied will break a block. Keeps track of the damage done.
-     * If the block is broken, it removes the block from the list.
+     * Deals damage to the block, sending packets to the client if necessary as
+     * well as providing experience and loot.
      * @param playerId The player who damaged the block.  Used for keeping track of
      *                 who receives the block as an item and gets exp.
      * @param x The x location of the block.  Each block counts as 1 unit.
@@ -424,27 +405,19 @@ public class World {
      * @param damage The amount of damage dealt to the block.
      * @return True if the block has broken, else false.
      */
-    public boolean hasBlockBroken(int playerId, long x, long y, long damage) {
+    public void doDamage(int playerId, long x, long y, long damage) {
         x = x >= 0 ? x % WorldConstants.WORLD_WIDTH : WorldConstants.WORLD_WIDTH + x;
         y = y >= 0 ? y: 0;
         y = y >= WorldConstants.WORLD_HEIGHT ? WorldConstants.WORLD_HEIGHT - 1 : y;
-    	RawPoint newPoint = new RawPoint(x, y);
+    	RawPoint point = new RawPoint(x, y);
     	
-    	//set the block as damaged
-    	setBlockDamaged(newPoint, damage, playerId);
-    	
-    	long maxHealth = getBlock(x, y).getMaximumHealth();
-    	long currentDamage = blockDamageMap.get(newPoint);
-    	
-    	//Check if damaged done is greater than block health
-    	if (currentDamage >= maxHealth) {
-    	    // Reward 
-    	    blocks[(int)newPoint.getX()][(int)newPoint.getY()] = BlockType.AIR.getValue();
-    		removeDamagedBlock(newPoint);
-    		return true;
+    	if (blockDamage.doDamage(point, playerId, damage, getBlock(x, y))) {
+    	    // Block damage says the block has broken, so break it.
+    	    blocks[(int)x][(int)y] = BlockType.AIR.getValue();
+            // Tell all nearby players that the block has broken
+            Server.getInstance().localBroadcast(new BoundLocation(x, y), 
+                    PacketCreator.getBlockChanged(x, y, getBlock(x, y).getType()));
     	}
-    	
-    	return false;
     }
 
     /**
@@ -507,11 +480,11 @@ public class World {
      */
     public void movePlayer(ServerPlayer player, Location location) {
         if (player != null && location != null &&
-                getChunkId(player.getLocation()) != getChunkId(location)) {
+                getChunkId(player.getClientLocation()) != getChunkId(location)) {
             writeLock.lock();
             try {
                 // Remove player from old chunk
-                long chunkId = getChunkId(player.getLocation());
+                long chunkId = getChunkId(player.getClientLocation());
                 players.get(chunkId).remove(player.getId());
                 if (players.get(chunkId).size() == 0) {
                     players.remove(chunkId);
@@ -523,6 +496,8 @@ public class World {
                     players.put(chunkId, new HashMap<Integer,ServerPlayer>());
                 }
                 players.get(chunkId).put(player.getId(), player);
+            } catch (NullPointerException e) {
+                e.printStackTrace();
             } finally {
                 writeLock.unlock();
             }
@@ -536,7 +511,7 @@ public class World {
      */
     public void addPlayer(ServerPlayer player) {
         if (player != null) {
-            long chunkId = getChunkId(player.getLocation());
+            long chunkId = getChunkId(player.getClientLocation());
             writeLock.lock();
             try {
                 if (!players.containsKey(chunkId)) {
@@ -555,7 +530,7 @@ public class World {
      */
     public void removePlayer(ServerPlayer player) {
         if (player != null) {
-            long chunkId = getChunkId(player.getLocation());
+            long chunkId = getChunkId(player.getClientLocation());
             writeLock.lock();
             try {
                 if (players.containsKey(chunkId)) {
@@ -726,5 +701,13 @@ public class World {
         }
                 
         return end2; // no collision
+    }
+
+    /**
+     * Updates everything in the world, such as block HP.
+     * @param delta The amount of time that has passed in milliseconds.
+     */
+    public void update(long delta) {
+        blockDamage.update(delta);
     }
 }

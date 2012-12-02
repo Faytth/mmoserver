@@ -115,6 +115,8 @@ public class MySQLDatabase implements DatabaseAccessor {
                 player.setLocation(new BoundLocation(playerPosX, playerPosY, 0, 0));
                 // Kludge:  Create player on land
                 player.accelerateDown(100000, 100f, 100f);
+                player.update(100000);
+                player.setClientLocation(new BoundLocation(player.getLocation()));
                 
                 // Assign the player to the client
                 client.setPlayer(player);

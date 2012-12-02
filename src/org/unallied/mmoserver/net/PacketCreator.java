@@ -132,6 +132,7 @@ public class PacketCreator {
         writer.write((byte)player.getDirection().ordinal()); // right is 0, left is 1
         writer.write(player.getVelocity().getBytes());
         writer.writeFloat(player.getFallSpeed());
+        writer.writeFloat(player.getInitialVelocity());
 
         return writer.getPacket();
     }
@@ -210,6 +211,22 @@ public class PacketCreator {
 	    
 	    return writer.getPacket();
 	}
+	
+	/**
+	 * Returns a packet containing the data of an item.  The packet is as follows:
+	 * [numberOfItems] [item]
+	 * @param itemId The id of the item to retrieve the data for.
+	 * @return packet
+	 */
+    public static Packet getItemData(ItemData item) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.ITEM_DATA);
+        writer.writeInt(1); // only 1 item
+        writer.write(item.getBytes());
+        
+        return writer.getPacket();
+    }
 	
 	/**
 	 * Returns a packet containing the information of a player.  The packet is as follows:
@@ -318,6 +335,24 @@ public class PacketCreator {
         writer.writeInt(damageDealt);
         writer.writeInt(hpCurrent);
 
+        return writer.getPacket();
+    }
+
+    /**
+     * Creates a Set Item packet which informs the client 
+     * @param itemId The id of the item whose quantity we're setting.
+     * @param quantity The new quantity of the item.  A quantity of 0 means
+     *                 that the item should be removed from the client's 
+     *                 inventory.
+     * @return packet
+     */
+    public static Packet getSetItem(int itemId, long quantity) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.SET_ITEM);
+        writer.writeInt(itemId);
+        writer.writeLong(quantity);
+        
         return writer.getPacket();
     }
 }

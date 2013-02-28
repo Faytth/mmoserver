@@ -14,7 +14,7 @@ import org.unallied.mmoserver.client.Client;
  * @author Faythless
  *
  */
-public class PlayerPool {
+public class ServerPlayerPool {
     private final ReentrantReadWriteLock locks = new ReentrantReadWriteLock();
     private final Lock readLock = locks.readLock();
     private final Lock writeLock = locks.writeLock();
@@ -39,7 +39,7 @@ public class PlayerPool {
     }
     
     /**
-     * Remove player identified by <code>key</code>.
+     * Remove player identified by <code>id</code>.
      * @param id The unique playerId for this Player.
      * @return The player that was removed
      */
@@ -94,5 +94,42 @@ public class PlayerPool {
             readLock.unlock();
         }
         return result;
+    }
+    
+    /**
+     * Locks the read lock for the ServerPlayerPool.  You MUST call read unlock when
+     * you're done using this.
+     */
+    public void readLock() {
+        readLock.lock();
+    }
+    
+    /**
+     * Unlocks the read lock for the ServerPlayerPool.
+     */
+    public void readUnlock() {
+        readLock.unlock();
+    }
+    
+    /**
+     * Returns the pool of players.  It is unsafe to modify the returned
+     * value unless you call a locking function first.  You should call
+     * {@link #readLock()} before reading values unless you don't care about
+     * consistency.
+     * @return players
+     */
+    public Map<Integer, ServerPlayer> getPlayers() {
+        return pool;
+    }
+    
+    public void update(long delta) {
+        readLock.lock();
+        try {
+            for (ServerPlayer sp : pool.values()) {
+                sp.updateLogic(delta);
+            }
+        } finally {
+            readLock.unlock();
+        }
     }
 }

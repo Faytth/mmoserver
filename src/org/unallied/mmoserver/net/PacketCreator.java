@@ -7,10 +7,12 @@ import org.unallied.mmocraft.Player;
 import org.unallied.mmocraft.constants.WorldConstants;
 import org.unallied.mmocraft.gui.MessageType;
 import org.unallied.mmocraft.items.ItemData;
+import org.unallied.mmocraft.monsters.Monster;
 import org.unallied.mmocraft.net.Packet;
 import org.unallied.mmocraft.net.PacketLittleEndianWriter;
 import org.unallied.mmocraft.net.RecvOpcode;
 import org.unallied.mmocraft.skills.SkillType;
+import org.unallied.mmoserver.monsters.ServerMonster;
 import org.unallied.mmoserver.server.ServerPlayer;
 import org.unallied.mmoserver.server.World;
 
@@ -117,18 +119,18 @@ public class PacketCreator {
     }
 
     /**
-     * Returns a movement packet to the client, which contains player's x,y coords,
-     * direction, current animation, and other movement related status.
+     * Returns a player movement packet to the client, which contains player's x,y coords,
+     * direction, current animation, and other movement related info.
      * @param player the player whose movement is to be "packetized."
      * @return packet
      */
-    public static Packet getMovement(Player player) {
+    public static Packet getPlayerMovement(Player player) {
         PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
         
-        writer.write(RecvOpcode.MOVEMENT);
+        writer.write(RecvOpcode.PLAYER_MOVEMENT);
         writer.writeInt(player.getId());
         writer.write(player.getLocation().getBytes());
-        writer.writeShort(player.getState().getId().getValue());
+        writer.writeShort(player.getState().getId());
         writer.write((byte)player.getDirection().ordinal()); // right is 0, left is 1
         writer.write(player.getVelocity().getBytes());
         writer.writeFloat(player.getFallSpeed());
@@ -137,6 +139,53 @@ public class PacketCreator {
         return writer.getPacket();
     }
 
+    /**
+     * Creates a player direction packet which informs the client of a player's
+     * change in the direction they're facing.
+     * @param player player whose direction has changed
+     * @return packet
+     */
+    public static Packet getPlayerDirection(ServerPlayer player) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.PLAYER_DIRECTION);
+        writer.writeInt(player.getId());
+        writer.write((byte)player.getDirection().ordinal()); // right is 0, left is 1
+        
+        return writer.getPacket();
+    }
+    
+    /**
+     * Returns a monster movement packet to the client, which contains monster's x,y coords,
+     * direction, current animation, and other movement related info.
+     * @param monster the monster whose movement is to be "packetized."
+     * @return packet
+     */
+    public static Packet getMonsterMovement(Monster monster) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.MONSTER_MOVEMENT);
+        writer.write(monster.getMovement());
+        
+        return writer.getPacket();
+    }
+    
+    /**
+     * Creates a player direction packet which informs the client of a monster's
+     * change in the direction they're facing.
+     * @param monster monster whose direction has changed
+     * @return packet
+     */
+    public static Packet getMonsterDirection(Monster monster) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.MONSTER_DIRECTION);
+        writer.writeInt(monster.getId());
+        writer.write((byte)monster.getDirection().ordinal()); // right is 0, left is 1
+        
+        return writer.getPacket();
+    }
+    
     /**
      * Returns a player disconnect packet which contains a player's ID.
      * The server sends this packet to the client when a relevant player disconnects.
@@ -230,13 +279,14 @@ public class PacketCreator {
 	
 	/**
 	 * Returns a packet containing the information of a player.  The packet is as follows:
-	 * [playerId] [playerName]
+	 * [playerId] [playerData]
 	 * @param player The player whose info will be written to the packet.
 	 * @return packet
 	 */
 	public static Packet getPlayerInfo(Player player) {
 	    PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
 	    
+	    // FIXME:  Fix this please!!! We need to provide more than just this.
 	    writer.write(RecvOpcode.PLAYER_INFO);
 	    writer.writeInt(player.getId());
 	    writer.writeInt(player.getHpMax());
@@ -246,6 +296,21 @@ public class PacketCreator {
 	    
 	    return writer.getPacket();
 	}
+	
+    /**
+     * Returns a packet containing the information of a monster.  The packet is as follows:
+     * [monsterId] [monsterData]
+     * @param monster The monster whose info will be written to the packet.
+     * @return packet
+     */
+    public static Packet getMonsterInfo(Monster monster) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.MONSTER_INFO);
+        writer.write(monster.getBytes());
+
+        return writer.getPacket();
+    }
 	
 	/**
 	 * Returns a packet containing the information of a skill.
@@ -339,7 +404,30 @@ public class PacketCreator {
     }
 
     /**
-     * Creates a Set Item packet which informs the client 
+     * Creates a monster damaged packet which informs the client of who attacked
+     * the monster and the amount of damage dealt.
+     * @param source The source of the damage.  This is the player that attacked the monster.
+     * @param damagedMonster The damaged monster.
+     * @param damageDealt The amount of damage inflicted.
+     * @param hpCurrent The new HP that the damaged monster has.
+     * @return packet
+     */
+    public static Packet getMonsterDamaged(ServerPlayer source, 
+            ServerMonster damagedMonster, int damageDealt, int hpCurrent) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.MONSTER_DAMAGED);
+        writer.writeInt(source.getId());
+        writer.writeInt(damagedMonster.getId());
+        writer.writeInt(damageDealt);
+        writer.writeInt(hpCurrent);
+        
+        return writer.getPacket();
+    }
+    
+    /**
+     * Creates a Set Item packet which informs the client of a new item and
+     * quantity of the item. 
      * @param itemId The id of the item whose quantity we're setting.
      * @param quantity The new quantity of the item.  A quantity of 0 means
      *                 that the item should be removed from the client's 
@@ -352,6 +440,21 @@ public class PacketCreator {
         writer.write(RecvOpcode.SET_ITEM);
         writer.writeInt(itemId);
         writer.writeLong(quantity);
+        
+        return writer.getPacket();
+    }
+
+    /**
+     * Creates a Set Gold packet which informs the client of the amount of gold that
+     * they now have.
+     * @param gold The new amount of gold that the client has.
+     * @return packet
+     */
+    public static Packet getSetGold(long gold) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.SET_GOLD);
+        writer.writeLong(gold);
         
         return writer.getPacket();
     }

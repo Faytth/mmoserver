@@ -1,10 +1,11 @@
 package org.unallied.mmoserver.client;
 
+import java.util.Iterator;
 import java.util.List;
-
 
 import org.apache.mina.core.session.IoSession;
 import org.unallied.mmocraft.net.Packet;
+import org.unallied.mmoserver.monsters.ServerMonster;
 import org.unallied.mmoserver.net.PacketCreator;
 import org.unallied.mmoserver.net.sessions.LoginSession;
 import org.unallied.mmoserver.server.Server;
@@ -91,7 +92,7 @@ public class Client {
      * Remove a player from the server
      */
     private void removePlayer() {
-        World.getInstance().removePlayer(player);
+        Server.getInstance().getServerPlayerPool().removePlayer(player.getId());
     }
     
     /**
@@ -102,6 +103,10 @@ public class Client {
             if (player != null && isLoggedIn()) {
                 selectiveBroadcast(player, PacketCreator.getPlayerDisconnect(player));
                 removePlayer();
+                // Revive dead players
+                if (!player.isAlive()) {
+                    player.revive();
+                }
                 Server.getInstance().getDatabase().savePlayer(player);
             }
         } finally {
@@ -156,7 +161,9 @@ public class Client {
          *  chunk, send a packet to the players in the chunk.
          */
         List<ServerPlayer> players = World.getInstance().getNearbyPlayers(player.getLocation());
-        for (ServerPlayer p : players) {
+        Iterator<ServerPlayer> iter = players.iterator();
+        while (iter.hasNext()) {
+            ServerPlayer p = iter.next();
             if (p.getId() != player.getId()) {
                 try {
                     p.getClient().announce(packet);
@@ -164,7 +171,7 @@ public class Client {
                     if (p.getClient() != null) {
                         Server.getInstance().logout(p.getClient());
                     } else {
-                        World.getInstance().removePlayer(p);
+                        Server.getInstance().getServerPlayerPool().removePlayer(p.getId());
                     }
                 }
             }
@@ -194,7 +201,7 @@ public class Client {
 	}
 
 	/**
-	 * Retrieves nearby players and other important information.
+	 * Retrieves nearby players, monsters, and other important information.
 	 */
     public void selectiveConvergecast() {
         /*
@@ -202,10 +209,14 @@ public class Client {
          *  chunk, send a packet about them to the player
          */
         List<ServerPlayer> players = World.getInstance().getNearbyPlayers(player.getLocation());
+        List<ServerMonster> monsters = World.getInstance().getNearbyMonsters(player.getLocation());
         for (ServerPlayer p : players) {
             if (p.getId() != player.getId()) {
-                announce(PacketCreator.getMovement(p));
+                announce(PacketCreator.getPlayerMovement(p));
             }
+        }
+        for (ServerMonster monster : monsters) {
+            announce(PacketCreator.getMonsterMovement(monster));
         }
     }
 }

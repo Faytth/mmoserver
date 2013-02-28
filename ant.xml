@@ -52,6 +52,7 @@
                 	lib/lwjgl.jar 
                 	lib/slick.jar 
                 	lib/mina-core.jar 
+                	lib/mysql-connector-java-bin.jar 
                 	lib/slf4j-api.jar 
                 	lib/slf4j-jdk14.jar"/>
             </manifest>
@@ -189,6 +190,7 @@
         <copy file="C:/Users/Alexandria/git/mmocraft/lib/lwjgl.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
         <copy file="C:/Users/Alexandria/git/mmocraft/lib/slick.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
         <copy file="C:/Users/Alexandria/git/mmocraft/lib/mina-core.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
+    	<copy file="C:/Users/Alexandria/git/mmoserver/lib/mysql-connector-java-bin.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
         <copy file="C:/Users/Alexandria/git/mmocraft/lib/slf4j-api.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
         <copy file="C:/Users/Alexandria/git/mmocraft/lib/slf4j-jdk14.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
         <copy file="C:/Users/Alexandria/git/mmoserver/lib/libnoiseforjava.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>

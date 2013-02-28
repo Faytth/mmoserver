@@ -1,9 +1,14 @@
 package org.unallied.mmoserver.server.regions;
 
-import org.unallied.mmocraft.constants.WorldConstants;
+import java.util.Collection;
+import java.util.Random;
 
 import libnoiseforjava.exception.ExceptionInvalidParam;
 import libnoiseforjava.module.Perlin;
+
+import org.unallied.mmocraft.constants.WorldConstants;
+import org.unallied.mmoserver.monsters.ServerMonsterData;
+import org.unallied.mmoserver.monsters.ServerMonsterManager;
 
 /**
  * Regions are "groups" of chunks that behave in a particular manner.
@@ -16,6 +21,8 @@ import libnoiseforjava.module.Perlin;
  *
  */
 public abstract class Region {
+    
+    private static Random random = new Random();
     
     /**
      * The world-based x coordinate for this region in blocks
@@ -178,5 +185,41 @@ public abstract class Region {
      */
     public int getY() {
     	return y;
+    }
+    
+    /**
+     * Retrieves the spawn chance for this region.  Spawn chance should be
+     * between 0 and 1 inclusive.  A higher spawn chance results in a higher
+     * probability of monsters spawning.
+     * 
+     * Unless the SPAWN_RATE is changed, this is the probability that a
+     * monster will spawn every 100 milliseconds.  In other words, spawn
+     * chance * SPAWN_RATE determines the average rate of monster spawns.
+     * @return spawnChance
+     */
+    public float getSpawnChance() {
+        return 0.02f;
+    }
+
+    /**
+     * Retrieves a random monster from this region given the region difficulty.
+     * TODO:  Finish implementation.
+     * @param monsterDifficulty
+     * @return monsterData or null if no monsters in list.
+     */
+    public ServerMonsterData getMonster(int monsterDifficulty) {
+        Collection<ServerMonsterData> monsters = ServerMonsterManager.getInstance().getAllServerMonsterData();
+
+        if (monsters.size() > 0) {
+            int rand = random.nextInt(monsters.size());
+            int i = 0;
+            for (ServerMonsterData monster : monsters) {
+                if (i++ == rand) {
+                    return monster;
+                }
+            }
+        }
+        
+        return null;
     }
 }

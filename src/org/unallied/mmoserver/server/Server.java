@@ -1,9 +1,12 @@
 package org.unallied.mmoserver.server;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.mina.core.filterchain.IoFilter;
 import org.apache.mina.core.service.IoAcceptor;
@@ -14,12 +17,16 @@ import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.constants.ClientConstants;
-import org.unallied.mmocraft.constants.ServerConstants;
 import org.unallied.mmocraft.items.ItemManager;
 import org.unallied.mmocraft.net.Packet;
 import org.unallied.mmoserver.client.Client;
+import org.unallied.mmoserver.constants.DatabaseConstants;
+import org.unallied.mmoserver.constants.ServerConstants;
 import org.unallied.mmoserver.database.DatabaseAccessor;
-import org.unallied.mmoserver.database.DummyDatabase;
+import org.unallied.mmoserver.database.MySQLDatabase;
+import org.unallied.mmoserver.monsters.MonsterSpawner;
+import org.unallied.mmoserver.monsters.ServerMonster;
+import org.unallied.mmoserver.monsters.ServerMonsterManager;
 import org.unallied.mmoserver.net.MMOServerHandler;
 import org.unallied.mmoserver.net.PacketCreator;
 import org.unallied.mmoserver.net.PacketProcessor;
@@ -37,18 +44,20 @@ import org.unallied.mmoserver.net.mina.MMOCodecFactory;
  */
 public class Server {
     
-    private PlayerPool players = new PlayerPool();
-    private DatabaseAccessor database = new DummyDatabase();
+    private ServerPlayerPool players = new ServerPlayerPool();
+    private ServerMonsterPool monsters = new ServerMonsterPool();
+    private DatabaseAccessor database = new MySQLDatabase();
     
     private IoAcceptor acceptor;
     
     /** True if the server is online.  False if the server should stop running. */
-    private boolean online = true;
+    private boolean online;
     
     /**
      * Private constructor for Singleton pattern
      */
     private Server() {
+        online = true;
         init();
     }
     
@@ -65,16 +74,49 @@ public class Server {
      * Initializes the server for execution.
      */
     private void init() {
-        ItemManager.load(ServerConstants.ITEM_PACK_LOCATION);
+        
+        // Load variables from server config file if applicable.
+        loadVariables();
+        
+        MonsterSpawner.getInstance().setPlayers(players);
+        MonsterSpawner.getInstance().setMonsters(monsters);
+        
+        ItemManager.load(ClientConstants.ITEM_PACK_LOCATION);
+        ServerMonsterManager.getInstance().load(ClientConstants.MONSTER_PACK_LOCATION);
         World.getInstance().generateWorld();
         (new Thread(new ServerUpdater())).start();
     }
+    
+    /**
+     * Loads the server's variables, such as database information, from a
+     * property configuration file.
+     */
+    private void loadVariables() {
+        try {
+            Properties prop = new Properties();
+            
+            prop.load(new FileInputStream(ServerConstants.SERVER_CONF_FILE));
+            DatabaseConstants.DB_URL = prop.getProperty(ServerConstants.CONF_DB_URL, DatabaseConstants.DB_URL);
+            DatabaseConstants.DB_USER = prop.getProperty(ServerConstants.CONF_DB_USER, DatabaseConstants.DB_USER);
+            DatabaseConstants.DB_PASS = prop.getProperty(ServerConstants.CONF_DB_PASS, DatabaseConstants.DB_PASS);
+            
+            System.out.println("Successfully loaded server property file.");
+        } catch (Throwable t) {
+            System.err.println("Unable to load server property file: " + t.getMessage());
+        }
+    }
         
     /**
-     * Runs the server until termination.  Note that this method will not
-     * return until the server terminates.
+     * Starts the server.
      */
     private void run() {
+        // Add shutdown hook to save everything once the server exits.
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                Server.getInstance().saveCharacters();
+                System.out.println("Characters saved.");
+            }
+        });
         database.globalLogout();
 
         acceptor = new NioSocketAcceptor();
@@ -90,7 +132,7 @@ public class Server {
         
         // Disable Nagle's algorithm.  We want FAST speed... not efficient transfers
         ((SocketSessionConfig) acceptor.getSessionConfig()).setTcpNoDelay(true);
-        System.out.println("Server started.");       
+        System.out.println("Server started.");
     }
     
     /**
@@ -113,6 +155,14 @@ public class Server {
                 if (player != null) {
                     players.removePlayer(player.getId());
                 }
+                
+                // Save the character's data.
+                ServerPlayer otherPlayer = other.getPlayer();
+                if (otherPlayer != null) {
+                    getDatabase().savePlayer(other.getPlayer());
+                    client.setPlayer(other.getPlayer()); // The client's player is outdated, so load the latest one.
+                }
+                
                 other.disconnect();
                 System.out.println("Client has same ID.  Closing connection for: " + entry.getValue().getRemoteAddress());
                 entry.getValue().close(true); // Close the client's session
@@ -146,8 +196,29 @@ public class Server {
         return online;
     }
     
+    /**
+     * Saves all players.
+     */
+    public void saveCharacters() {
+        players.readLock();
+        try {
+            for (ServerPlayer player : players.getPlayers().values()) {
+                getDatabase().savePlayer(player);
+            }
+        } finally {
+            players.readUnlock();
+        }
+    }
+    
     public static void main(String args[]) {
-        Server.getInstance().run();
+        try {
+            Server.getInstance().run();
+        } catch (Throwable t) {
+            System.out.println("Server has stopped running.");
+            System.out.println(t.getMessage());
+            t.printStackTrace();
+        }
+        // If we want to have console commands, then add support for it here.
     }
 
     /**
@@ -179,14 +250,16 @@ public class Server {
          *  chunk, send a packet to the players in the chunk.
          */
         List<ServerPlayer> players = World.getInstance().getNearbyPlayers(location);
-        for (ServerPlayer p : players) {
+        Iterator<ServerPlayer> iter = players.iterator();
+        while (iter.hasNext()) {
+            ServerPlayer p = iter.next();
             try {
                 p.getClient().announce(packet);
             } catch (NullPointerException e) {
-                if (p.getClient() != null) {
+                if (p != null && p.getClient() != null) {
                     logout(p.getClient());
                 } else {
-                    World.getInstance().removePlayer(p);
+                    players.remove(p.getId());
                 }
             }
         }
@@ -214,6 +287,20 @@ public class Server {
     }
     
     /**
+     * Sends a monster's info to the client if they're close enough to the client.
+     * Otherwise returns null.
+     * @param client The client requesting the information.
+     * @param monsterId The id of the monster whose information is being requested.
+     */
+    public void getMonsterInfo(Client client, int monsterId) {
+        ServerMonster monster = monsters.getMonster(monsterId);
+        if (monster != null && 
+                monster.getLocation().getDistance(client.getPlayer().getLocation()) < ServerConstants.OBJECT_DESPAWN_DISTANCE) {
+            client.announce(PacketCreator.getMonsterInfo(monster));
+        }
+    }
+    
+    /**
      * Retrieves a player from the server if they're online.  Otherwise returns
      * null.
      * @param playerId The id of the player whose information is being requested.
@@ -221,5 +308,21 @@ public class Server {
      */
     public ServerPlayer getPlayer(int playerId) {
         return players.getPlayer(playerId);
+    }
+    
+    /**
+     * Retrieves the monster pool.
+     * @return monsters
+     */
+    public ServerMonsterPool getServerMonsterPool() {
+        return monsters;
+    }
+    
+    /**
+     * Retrieves the player pool.
+     * @return players
+     */
+    public ServerPlayerPool getServerPlayerPool() {
+        return players;
     }
 }

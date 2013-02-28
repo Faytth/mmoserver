@@ -16,7 +16,7 @@ public class CollisionHandler extends AbstractServerPacketHandler {
      * player was able to attack in their current state.
      */
     public void handlePacket(SeekableLittleEndianAccessor slea, Client client) {
-        if (slea.available() != 16 || !Authenticator.canPlayerAttack(client.getPlayer())) { // Guard
+        if (slea.available() != 16 || !Authenticator.canLivingAttack(client.getPlayer())) { // Guard
             return;
         }
     	int startingIndex      = slea.readInt();

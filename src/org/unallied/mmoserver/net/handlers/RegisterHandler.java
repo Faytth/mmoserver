@@ -20,14 +20,19 @@ public class RegisterHandler extends AbstractServerPacketHandler {
         String user = slea.readPrefixedAsciiString();
         String pass = slea.readPrefixedAsciiString();
         String email = slea.readPrefixedAsciiString();
-        if (Authenticator.isValidPass(pass)) {
-            byte[] byteData = Hasher.getSHA256((user + pass).getBytes());
-            StringBuffer sb = new StringBuffer();
-            for (int i=0; i < byteData.length; ++i) {
-                sb.append(Integer.toString((byteData[i] & 0xFF) + 0x100, 16).substring(1));
-            }
-            pass = sb.toString();
+        
+        // Prevent bad usernames / passwords / emails
+        if (!(Authenticator.isValidUser(user) && Authenticator.isValidPass(pass) && Authenticator.isValidEmail(email))) {
+            client.announce(PacketCreator.getRegisterAcknowledgment(false));
+            return;
         }
+        
+        byte[] byteData = Hasher.getSHA256((new String(user).toLowerCase() + pass).getBytes());
+        StringBuffer sb = new StringBuffer();
+        for (int i=0; i < byteData.length; ++i) {
+            sb.append(Integer.toString((byteData[i] & 0xFF) + 0x100, 16).substring(1));
+        }
+        pass = sb.toString();
         boolean accepted = Server.getInstance().getDatabase().createAccount(user, pass, email);
         
         // Tell client that we received their registration request, and that they can now log in

@@ -3,7 +3,6 @@ package org.unallied.mmoserver.net.handlers;
 
 import org.unallied.mmocraft.gui.MessageType;
 import org.unallied.mmocraft.net.Packet;
-import org.unallied.mmocraft.skills.SkillType;
 import org.unallied.mmocraft.tools.Authenticator;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 import org.unallied.mmoserver.client.Client;
@@ -28,7 +27,6 @@ public class ChatMessageHandler extends AbstractServerPacketHandler {
         String message = slea.readPrefixedAsciiString();
         
         if (Authenticator.isValidChatMessage(message)) {
-            p.addExperience(SkillType.CONSTITUTION, message.length());
         	Packet packet = PacketCreator.getChatMessage(p.getName(), type, message);
         	switch (type) {
         	case SAY: // broadcast to nearby players

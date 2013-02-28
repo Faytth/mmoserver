@@ -17,6 +17,8 @@ import org.unallied.mmocraft.RawPoint;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.constants.WorldConstants;
 import org.unallied.mmocraft.sessions.TerrainSession;
+import org.unallied.mmoserver.monsters.ServerMonster;
+import org.unallied.mmoserver.monsters.ServerMonsterData;
 import org.unallied.mmoserver.net.PacketCreator;
 import org.unallied.mmoserver.server.regions.DesertRegion;
 import org.unallied.mmoserver.server.regions.HillsRegion;
@@ -61,10 +63,17 @@ public class World {
     /**
      * A map of all players by chunk id.  When a player moves from one chunk to another,
      * they need to be removed from their old chunk and placed in their new chunk.
-     * TODO: Combine this with the PlayerPool somehow
+     * TODO: Combine this with the PlayerPool somehow.
      */
     private HashMap<Long, HashMap<Integer, ServerPlayer>> players = new HashMap<Long, HashMap<Integer, ServerPlayer>>();
-        
+    
+    /**
+     * A map of all monsters by chunk id.  When a monster moves from one chunk to another,
+     * they need to be removed from their old chunk and placed in their new chunk.
+     * TODO: Combine this with the MonsterPool somehow.
+     */
+    private HashMap<Long, HashMap<Integer, ServerMonster>> monsters = new HashMap<Long, HashMap<Integer, ServerMonster>>();
+    
     private World() {
     }
     
@@ -472,9 +481,59 @@ public class World {
     }
     
     /**
+     * Retrieves all monsters near this location.  Distance to retrieve
+     * monsters is based on <code>WorldConstants.WORLD_DRAW_DISTANCE</code>.
+     * @param location The location to get the surrounding monsters from
+     * @return monsters near <code>location</code>
+     */
+    public List<ServerMonster> getNearbyMonsters(BoundLocation location) {
+        List<ServerMonster> result = new ArrayList<ServerMonster>();
+        
+        int radius = WorldConstants.WORLD_DRAW_DISTANCE;
+        int length = radius * 2 + 1;
+        
+        // Get all chunks around this location
+        // NOTE: This breaks down if the world is abnormally small
+        long x = location.getX();
+        long y = location.getY();
+        
+        long maxX = WorldConstants.WORLD_CHUNKS_WIDE;
+        long maxY = WorldConstants.WORLD_CHUNKS_TALL;
+        
+        x /= WorldConstants.WORLD_CHUNK_WIDTH;
+        y /= WorldConstants.WORLD_CHUNK_HEIGHT;
+        
+        readLock.lock();
+        try {
+            for (int i=0; i < length; ++i) { // rows
+                for (int j=0; j < length; ++j) { // columns
+                    // (y << 32) | x
+                    int chunkX = (int) ((x+i-radius) % maxX);
+                    int chunkY = (int) (y+j-radius);
+                    
+                    // Make sure we don't get negative coordinates
+                    chunkX = (int) (chunkX < 0 ? maxX+chunkX : chunkX);
+                    chunkY = (int) (chunkY < 0    ? 0 : 
+                                    chunkY > maxY ? maxY :
+                                                    chunkY);
+                    
+                    long chunkId = ((long) (chunkY) << 32) | chunkX;
+                    
+                    if (monsters.containsKey(chunkId)) {
+                        result.addAll(monsters.get(chunkId).values());
+                    }
+                }
+            }
+        } finally {
+            readLock.unlock();
+        }
+        
+        return result;
+    }
+    
+    /**
      * Moves a player to a new chunk if necessary.  Does not actually update the player's
      * location.
-     * FIXME:  I received errors about a null pointer exception stemming from this. (line 515).
      * @param player The player whose chunk needs updating
      * @param location The player's new location
      */
@@ -496,6 +555,41 @@ public class World {
                     players.put(chunkId, new HashMap<Integer,ServerPlayer>());
                 }
                 players.get(chunkId).put(player.getId(), player);
+                
+                // Notify player of nearby Living objects (players / monsters).
+                player.getClient().selectiveConvergecast();
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+            } finally {
+                writeLock.unlock();
+            }
+        }
+    }
+    
+    /**
+     * Moves a monster to a new chunk if necessary.  Does not actually update the monster's
+     * location.
+     * @param monster The monster whose chunk needs updating
+     * @param location The monster's new location
+     */
+    public void moveMonster(ServerMonster monster, Location location) {
+        if (monster != null && location != null &&
+                getChunkId(monster.getLocation()) != getChunkId(location)) {
+            writeLock.lock();
+            try {
+                // Remove monster from old chunk
+                long chunkId = getChunkId(monster.getLocation());
+                monsters.get(chunkId).remove(monster.getId());
+                if (monsters.get(chunkId).size() == 0) {
+                    monsters.remove(chunkId);
+                }
+                
+                // Add player to new chunk
+                chunkId = getChunkId(location);
+                if (!monsters.containsKey(chunkId)) {
+                    monsters.put(chunkId, new HashMap<Integer,ServerMonster>());
+                }
+                monsters.get(chunkId).put(monster.getId(), monster);
             } catch (NullPointerException e) {
                 e.printStackTrace();
             } finally {
@@ -511,9 +605,9 @@ public class World {
      */
     public void addPlayer(ServerPlayer player) {
         if (player != null) {
-            long chunkId = getChunkId(player.getClientLocation());
             writeLock.lock();
             try {
+                long chunkId = getChunkId(player.getClientLocation());
                 if (!players.containsKey(chunkId)) {
                     players.put(chunkId, new HashMap<Integer,ServerPlayer>());
                 }
@@ -525,20 +619,63 @@ public class World {
     }
     
     /**
-     * Removes a player from their chunk
+     * Add a monster to a chunk.  This should only be called one time per monster.
+     * To move a monster from one chunk to another, call <code>moveMonster(Monster monster)</code>
+     * @param monster
+     */
+    public void addMonster(ServerMonster monster) {
+        if (monster != null) {
+            writeLock.lock();
+            try {
+                long chunkId = getChunkId(monster.getLocation());
+                if (!monsters.containsKey(chunkId)) {
+                    monsters.put(chunkId, new HashMap<Integer,ServerMonster>());
+                }
+                monsters.get(chunkId).put(monster.getId(), monster);
+            } finally {
+                writeLock.unlock();
+            }
+        }
+    }
+    
+    /**
+     * Removes a player from their chunk.
      * @param player the player to remove
      */
     public void removePlayer(ServerPlayer player) {
         if (player != null) {
-            long chunkId = getChunkId(player.getClientLocation());
             writeLock.lock();
             try {
+                long chunkId = getChunkId(player.getClientLocation());
                 if (players.containsKey(chunkId)) {
                     players.get(chunkId).remove(player.getId());
                     
                     // No more players in this chunk.  Removing chunk to save space.
                     if (players.get(chunkId).size() == 0) {
                         players.remove(chunkId);
+                    }
+                }
+            } finally {
+                writeLock.unlock();
+            }
+        }
+    }
+    
+    /**
+     * Removes a monster from their chunk.
+     * @param monster the monster to remove
+     */
+    public void removeMonster(ServerMonster monster) {
+        if (monster != null) {
+            writeLock.lock();
+            try {
+                long chunkId = getChunkId(monster.getLocation());
+                if (monsters.containsKey(chunkId)) {
+                    monsters.get(chunkId).remove(monster.getId());
+                    
+                    // No more monsters in this chunk.  Removing chunk to save space.
+                    if (monsters.get(chunkId).size() == 0) {
+                        monsters.remove(chunkId);
                     }
                 }
             } finally {
@@ -709,5 +846,73 @@ public class World {
      */
     public void update(long delta) {
         blockDamage.update(delta);
+    }
+
+    /**
+     * Retrieves the spawn chance (from 0 to 1 inclusive) of a particular
+     * region.  Returns 0 if the location didn't exist.  The higher the spawn
+     * chance, the greater the chance a mob will spawn.
+     * @param location The location in the region to retrieve the spawn chance for.
+     * @return spawnChance
+     */
+    public float getSpawnChance(BoundLocation location) {
+        if (location == null) {
+            return 0;
+        }
+        
+        int rx = (int) (location.getX() / WorldConstants.WORLD_CHUNK_WIDTH / WorldConstants.WORLD_REGION_WIDTH);
+        int ry = (int) (location.getY() / WorldConstants.WORLD_CHUNK_HEIGHT / WorldConstants.WORLD_REGION_HEIGHT);
+        if (rx >= 0 && ry >= 0 && regions.length > rx && regions[rx].length > ry) {
+            return regions[rx][ry].getSpawnChance();
+        }
+        
+        return 0; // Impossible location
+    }
+    
+    /**
+     * Retrieves the average monster level associated with this location.  Monster
+     * levels are decided at the region level.  Returns 0 if the location is impossible.<br />
+     * Difficulty ranges from 0 to 120.  Difficulty increases as you approach the center x
+     * of the world (up to +100), and as you go downwards (up to +20).
+     * @param location The location at which to retrieve the monster level.
+     * @return monsterDifficulty
+     */
+    public int getMonsterDifficulty(BoundLocation location) {
+        if (location == null) {
+            return 0;
+        }
+        
+        int difficultyX = (int) ((WorldConstants.WORLD_WIDTH / 2) - location.getX());
+        difficultyX = difficultyX < 0 ? -difficultyX : difficultyX;
+        difficultyX = (int) (100.0 * ((WorldConstants.WORLD_WIDTH / 2.0 - difficultyX) / (WorldConstants.WORLD_WIDTH / 2.0)));
+
+        int difficultyY = 0;
+        if (location.getY() / WorldConstants.WORLD_CHUNK_HEIGHT > 20) {
+            difficultyY = (int) (location.getY() / WorldConstants.WORLD_CHUNK_HEIGHT) - 20;
+            difficultyY = difficultyY < 0 ? 0 : difficultyY;
+            difficultyY = (int)(20.0 * (difficultyY / (WorldConstants.WORLD_CHUNKS_TALL - 20.0)));
+        }
+        
+        return difficultyX + difficultyY;
+    }
+
+    /**
+     * Retrieves a random monster from this location.  The monster is based on
+     * the region's location (monster difficulty), and should also be based on
+     * the region type (e.g. desert).<br />
+     * Returns null if the region is not found or if there are no monsters to retrieve.
+     * @param location The location to get a monster from.
+     * @return monsterData
+     */
+    public ServerMonsterData getMonster(BoundLocation location) {
+        int monsterDifficulty = getMonsterDifficulty(location);
+        
+        int rx = (int) (location.getX() / WorldConstants.WORLD_CHUNK_WIDTH / WorldConstants.WORLD_REGION_WIDTH);
+        int ry = (int) (location.getY() / WorldConstants.WORLD_CHUNK_HEIGHT / WorldConstants.WORLD_REGION_HEIGHT);
+        if (rx >= 0 && ry >= 0 && regions.length > rx && regions[rx].length > ry) {
+            return regions[rx][ry].getMonster(monsterDifficulty);
+        }
+        
+        return null;
     }
 }

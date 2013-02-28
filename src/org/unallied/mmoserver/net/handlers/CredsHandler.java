@@ -58,21 +58,13 @@ public class CredsHandler extends AbstractServerPacketHandler {
             // Tell the client who they are
             // TODO:  Remove this code and instead add proper serialization for player
             ServerPlayer sp = client.getPlayer();
-            Player p = new Player();
-            p.setDirection(sp.getDirection());
-            p.setHpMax(sp.getHpMax());
-            p.setHpCurrent(sp.getHpCurrent());
-            p.setId(sp.getId());
-            p.setLocation(sp.getLocation());
-            p.setName(sp.getName());
-            p.setState(sp.getState());
-            p.setInventory(sp.getInventory());
+            Player p = new Player(sp);
             client.announce(PacketCreator.getItemData(p.getInventory().getItemData()));
             client.announce(PacketCreator.getPlayer(p));
-            // Get nearby players.
+            // Get nearby players and monsters.
             client.selectiveConvergecast();
             // Tell other players about this player.
-            client.selectiveBroadcast(sp, PacketCreator.getMovement(sp));
+            client.selectiveBroadcast(sp, PacketCreator.getPlayerMovement(sp));
         } else {
             // The client doesn't know the password, or there has been an error
             client.announce(PacketCreator.getLoginError(ErrorConstants.LOGIN_ERROR) );

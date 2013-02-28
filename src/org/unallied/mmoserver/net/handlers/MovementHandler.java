@@ -4,7 +4,7 @@ package org.unallied.mmoserver.net.handlers;
 import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.Direction;
 import org.unallied.mmocraft.Velocity;
-import org.unallied.mmocraft.animations.AnimationType;
+import org.unallied.mmocraft.animations.AnimationID;
 import org.unallied.mmocraft.tools.Authenticator;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 import org.unallied.mmoserver.client.Client;
@@ -22,7 +22,7 @@ public class MovementHandler extends AbstractServerPacketHandler {
      */
     public void handlePacket(SeekableLittleEndianAccessor slea, Client client) {
         ServerPlayer p = client.getPlayer();
-        if (p == null || !Authenticator.canPlayerMove(p)) {
+        if (p == null || !Authenticator.canLivingMove(p)) {
             return;
         }
         // TODO:  Perform check to ensure that player isn't lying about their location
@@ -39,12 +39,12 @@ public class MovementHandler extends AbstractServerPacketHandler {
                 p.setClientLocation(new BoundLocation(location));
             }
             // TODO:  Make sure player isn't lying about their current state
-            p.setState(AnimationType.getState(p, p.getState(), slea.readShort()));
+            p.setState(AnimationID.getState(p, p.getState(), slea.readShort()));
             p.setDirection(slea.readByte() == 0 ? Direction.RIGHT : Direction.LEFT);
             p.setVelocity(Velocity.fromBytes(slea));
             p.setFallSpeed(slea.readFloat());
             p.setInitialVelocity(slea.readFloat());
-            client.selectiveBroadcast(p, PacketCreator.getMovement(p));
+            client.selectiveBroadcast(p, PacketCreator.getPlayerMovement(p));
         }
     }
 }

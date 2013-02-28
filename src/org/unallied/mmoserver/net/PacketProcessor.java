@@ -64,12 +64,14 @@ public class PacketProcessor {
         registerHandler(SendOpcode.LOGON, new LogonHandler());
         registerHandler(SendOpcode.CREDS, new CredsHandler());
         registerHandler(SendOpcode.CHUNK, new ChunkHandler());
-        registerHandler(SendOpcode.MOVEMENT, new MovementHandler());
+        registerHandler(SendOpcode.PLAYER_MOVEMENT, new MovementHandler());
         registerHandler(SendOpcode.REGISTER, new RegisterHandler());
         registerHandler(SendOpcode.CHAT_MESSAGE, new ChatMessageHandler());
-        registerHandler(SendOpcode.PLAYER_INFO, new PlayerInfoHandler());
-        registerHandler(SendOpcode.BLOCK_COLLISION, new CollisionHandler());
-        registerHandler(SendOpcode.PVP_TOGGLE, new PvPToggleHandler());
         registerHandler(SendOpcode.ITEM_DATA, new ItemDataHandler());
+        registerHandler(SendOpcode.BLOCK_COLLISION, new CollisionHandler());
+        registerHandler(SendOpcode.PLAYER_INFO, new PlayerInfoHandler());
+        registerHandler(SendOpcode.PVP_TOGGLE, new PvPToggleHandler());
+        registerHandler(SendOpcode.MONSTER_INFO, new MonsterInfoHandler());
+        registerHandler(SendOpcode.PLAYER_DIRECTION, new PlayerDirectionHandler());
     }
 }

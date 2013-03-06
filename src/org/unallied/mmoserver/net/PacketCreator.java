@@ -404,6 +404,26 @@ public class PacketCreator {
     }
 
     /**
+     * Creates a monster damaged packet which informs the client of who attacked who
+     * and the amount of damage dealt.
+     * @param damagedPlayer The damaged player.
+     * @param damageDealt The amount of damage inflicted.
+     * @param hpCurrent The new HP that the damaged player has.
+     * @return packet
+     */
+    public static Packet getPlayerDamaged(ServerPlayer damagedPlayer, 
+            int damageDealt, int hpCurrent) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.PLAYER_DAMAGED);
+        writer.writeInt(damagedPlayer.getId());
+        writer.writeInt(damageDealt);
+        writer.writeInt(hpCurrent);
+        
+        return writer.getPacket();
+    }
+    
+    /**
      * Creates a monster damaged packet which informs the client of who attacked
      * the monster and the amount of damage dealt.
      * @param source The source of the damage.  This is the player that attacked the monster.
@@ -417,7 +437,7 @@ public class PacketCreator {
         PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
         
         writer.write(RecvOpcode.MONSTER_DAMAGED);
-        writer.writeInt(source.getId());
+        writer.writeInt(source == null ? -1 : source.getId());
         writer.writeInt(damagedMonster.getId());
         writer.writeInt(damageDealt);
         writer.writeInt(hpCurrent);
@@ -455,6 +475,26 @@ public class PacketCreator {
         
         writer.write(RecvOpcode.SET_GOLD);
         writer.writeLong(gold);
+        
+        return writer.getPacket();
+    }
+
+    /**
+     * Creates a Revive packet which informs the player of their new location /
+     * HP / state.
+     * @param player The player who is being revived.
+     * @return packet
+     */
+    public static Packet getRevive(ServerPlayer player) {
+        PacketLittleEndianWriter writer = new PacketLittleEndianWriter();
+        
+        writer.write(RecvOpcode.REVIVE);
+        writer.writeInt(player.getHpCurrent());
+        writer.write(player.getLocation().getBytes());
+        writer.writeShort(player.getState().getId());
+        writer.write(player.getVelocity().getBytes());
+        writer.writeFloat(player.getFallSpeed());
+        writer.writeFloat(player.getInitialVelocity());
         
         return writer.getPacket();
     }

@@ -11,6 +11,7 @@ import org.unallied.mmocraft.Player;
 import org.unallied.mmocraft.RawPoint;
 import org.unallied.mmocraft.Velocity;
 import org.unallied.mmocraft.animations.AnimationState;
+import org.unallied.mmocraft.animations.sword.SwordIdle;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.constants.ClientConstants;
 import org.unallied.mmocraft.constants.WorldConstants;
@@ -207,31 +208,30 @@ public class ServerPlayer extends Player {
             bottomRight.moveDown(collisionArc[curIndex].getHeight());
             bottomRight.moveRight(collisionArc[curIndex].getWidth());
             
-            if (topLeft.equals(bottomRight)) {
-                return;
-            }
-            /*
-             *  We now have the topLeft and bottomRight coords of our rectangle.
-             *  Using this, we need to grab every block in our rectangle for collision
-             *  testing.
-             */
-            for (long x = topLeft.getX(); x <= bottomRight.getX(); ++x) {
-                for (long y = topLeft.getY(); y <= bottomRight.getY(); ++y) {
-                    if (World.getInstance().getBlock(x, y).isCollidable()) {
-                        int xOff = 0;
-                        if (direction == Direction.RIGHT) {
-                            xOff = (int) (((x - this.location.getX()) * WorldConstants.WORLD_BLOCK_WIDTH - horizontalOffset - collisionArc[curIndex].getXOffset() - this.location.getXOffset()));
-                        } else {
-                            xOff = (int) (-this.location.getXOffset() + current.getWidth() - ((this.location.getX() - x) * WorldConstants.WORLD_BLOCK_WIDTH + getWidth() - horizontalOffset + collisionArc[curIndex].getFlipped().getXOffset()));
-                        }
-                        int yOff = (int) (((y - this.location.getY()) * WorldConstants.WORLD_BLOCK_HEIGHT - verticalOffset - collisionArc[curIndex].getYOffset() - this.location.getYOffset()));
-                        float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
-                                new Rectangle(WorldConstants.WORLD_BLOCK_WIDTH, WorldConstants.WORLD_BLOCK_HEIGHT), xOff, yOff);
-                        if (damage > 0) {
-                            int multipliedDamage = (int)Math.round(getBlockDamageMultiplier() * damage);
-                            
-                            //if the block broke, tell everyone
-                            World.getInstance().doDamage(getId(), x, y, multipliedDamage);
+            if (!topLeft.equals(bottomRight)) {
+                /*
+                 *  We now have the topLeft and bottomRight coords of our rectangle.
+                 *  Using this, we need to grab every block in our rectangle for collision
+                 *  testing.
+                 */
+                for (long x = topLeft.getX(); x <= bottomRight.getX(); ++x) {
+                    for (long y = topLeft.getY(); y <= bottomRight.getY(); ++y) {
+                        if (World.getInstance().getBlock(x, y).isCollidable()) {
+                            int xOff = 0;
+                            if (direction == Direction.RIGHT) {
+                                xOff = (int) (((x - this.location.getX()) * WorldConstants.WORLD_BLOCK_WIDTH - horizontalOffset - collisionArc[curIndex].getXOffset() - this.location.getXOffset()));
+                            } else {
+                                xOff = (int) (-this.location.getXOffset() + current.getWidth() - ((this.location.getX() - x) * WorldConstants.WORLD_BLOCK_WIDTH + getWidth() - horizontalOffset + collisionArc[curIndex].getFlipped().getXOffset()));
+                            }
+                            int yOff = (int) (((y - this.location.getY()) * WorldConstants.WORLD_BLOCK_HEIGHT - verticalOffset - collisionArc[curIndex].getYOffset() - this.location.getYOffset()));
+                            float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
+                                    new Rectangle(WorldConstants.WORLD_BLOCK_WIDTH, WorldConstants.WORLD_BLOCK_HEIGHT), xOff, yOff);
+                            if (damage > 0) {
+                                int multipliedDamage = (int)Math.round(getBlockDamageMultiplier() * damage);
+                                
+                                //if the block broke, tell everyone
+                                World.getInstance().doDamage(getId(), x, y, multipliedDamage);
+                            }
                         }
                     }
                 }
@@ -268,51 +268,48 @@ public class ServerPlayer extends Player {
             bottomRight.moveDown(collisionArc[curIndex].getHeight());
             bottomRight.moveRight(collisionArc[curIndex].getWidth());
             
-            if (topLeft.equals(bottomRight)) {
-                return;
-            }
-            
-            /*
-             *  We now have the topLeft and bottomRight coords of our rectangle.
-             *  Using this, we need to grab every player in our rectangle for collision
-             *  testing.
-             */
-            List<ServerPlayer> players = World.getInstance().getNearbyPlayers(location);
-            LongRectangle collisionRect = new LongRectangle(0, 0, 
-                    bottomRight.getRawDeltaX(topLeft), bottomRight.getRawDeltaY(topLeft));
-            for (ServerPlayer player : players) {
+            if (!topLeft.equals(bottomRight)) {
                 /*
-                 *  We need the playerRect to be offset based on the difference 
-                 *  between it and the attacking player's location.  Otherwise
-                 *  we will fail to detect a collision at (0, 0) where the world
-                 *  wraps around.
+                 *  We now have the topLeft and bottomRight coords of our rectangle.
+                 *  Using this, we need to grab every player in our rectangle for collision
+                 *  testing.
                  */
-                if (player != this && player.isAlive() && player.isPvPFlagEnabled() && !player.current.isInvincible()) {
-                    player.update();
-                    LongRectangle playerRect = new LongRectangle(player.getLocation().getRawDeltaX(topLeft), 
-                            player.getLocation().getRawDeltaY(topLeft),
-                            collisionWidth * Location.BLOCK_GRANULARITY / WorldConstants.WORLD_BLOCK_WIDTH,
-                            collisionHeight * Location.BLOCK_GRANULARITY / WorldConstants.WORLD_BLOCK_HEIGHT);
-                    if (playerRect.intersects(collisionRect)) {
-                        int xOff = 0;
-                        if (direction == Direction.RIGHT) {
-                            xOff = (int) ((player.getLocation().getRawDeltaX(this.location) * WorldConstants.WORLD_BLOCK_WIDTH / Location.BLOCK_GRANULARITY) - horizontalOffset - collisionArc[curIndex].getXOffset());
-                        } else {
-                            xOff = (int) (current.getWidth() - (this.location.getRawDeltaX(player.getLocation()) * WorldConstants.WORLD_BLOCK_WIDTH / Location.BLOCK_GRANULARITY + getWidth() - horizontalOffset + collisionArc[curIndex].getFlipped().getXOffset()));
-                        }
-                        int yOff = (int) ((player.getLocation().getRawDeltaY(this.location) * WorldConstants.WORLD_BLOCK_HEIGHT / Location.BLOCK_GRANULARITY - verticalOffset - collisionArc[curIndex].getYOffset()));
-                        float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
-                                new Rectangle(collisionWidth, collisionHeight), xOff, yOff);
-                        int multipliedDamage = (int)Math.round(getPvPDamageMultiplier() * damage);
-                        player.damage(this, multipliedDamage);
-                        // Refresh PvP duration for the client
-                        if (this.pvpExpireTime != -1) {
-                            this.setPvPTime(System.currentTimeMillis() + ClientConstants.PVP_FLAG_DURATION);
+                List<ServerPlayer> players = World.getInstance().getNearbyPlayers(location);
+                LongRectangle collisionRect = new LongRectangle(0, 0, 
+                        bottomRight.getRawDeltaX(topLeft), bottomRight.getRawDeltaY(topLeft));
+                for (ServerPlayer player : players) {
+                    /*
+                     *  We need the playerRect to be offset based on the difference 
+                     *  between it and the attacking player's location.  Otherwise
+                     *  we will fail to detect a collision at (0, 0) where the world
+                     *  wraps around.
+                     */
+                    if (player != this && player.isAlive() && player.isPvPFlagEnabled() && !player.current.isInvincible()) {
+                        player.update();
+                        LongRectangle playerRect = new LongRectangle(player.getLocation().getRawDeltaX(topLeft), 
+                                player.getLocation().getRawDeltaY(topLeft),
+                                player.getWidth() * Location.BLOCK_GRANULARITY / WorldConstants.WORLD_BLOCK_WIDTH,
+                                player.getHeight() * Location.BLOCK_GRANULARITY / WorldConstants.WORLD_BLOCK_HEIGHT);
+                        if (playerRect.intersects(collisionRect)) {
+                            int xOff = 0;
+                            if (direction == Direction.RIGHT) {
+                                xOff = (int) ((player.getLocation().getRawDeltaX(this.location) * WorldConstants.WORLD_BLOCK_WIDTH / Location.BLOCK_GRANULARITY) - horizontalOffset - collisionArc[curIndex].getXOffset());
+                            } else {
+                                xOff = (int) (current.getWidth() - (this.location.getRawDeltaX(player.getLocation()) * WorldConstants.WORLD_BLOCK_WIDTH / Location.BLOCK_GRANULARITY + getWidth() - horizontalOffset + collisionArc[curIndex].getFlipped().getXOffset()));
+                            }
+                            int yOff = (int) ((player.getLocation().getRawDeltaY(this.location) * WorldConstants.WORLD_BLOCK_HEIGHT / Location.BLOCK_GRANULARITY - verticalOffset - collisionArc[curIndex].getYOffset()));
+                            float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
+                                    new Rectangle(player.getWidth(), player.getHeight()), xOff, yOff);
+                            int multipliedDamage = (int)Math.round(getPvPDamageMultiplier() * damage);
+                            player.damage(this, multipliedDamage);
+                            // Refresh PvP duration for the client
+                            if (this.pvpExpireTime != -1) {
+                                this.setPvPTime(System.currentTimeMillis() + ClientConstants.PVP_FLAG_DURATION);
+                            }
                         }
                     }
                 }
             }
-            
         } while (curIndex != endingIndex);
     }
     
@@ -342,47 +339,44 @@ public class ServerPlayer extends Player {
             bottomRight.moveDown(collisionArc[curIndex].getHeight());
             bottomRight.moveRight(collisionArc[curIndex].getWidth());
             
-            if (topLeft.equals(bottomRight)) {
-                return;
-            }
-            
-            /*
-             *  We now have the topLeft and bottomRight coords of our rectangle.
-             *  Using this, we need to grab every player in our rectangle for collision
-             *  testing.
-             */
-            List<ServerMonster> monsters = World.getInstance().getNearbyMonsters(location);
-            LongRectangle collisionRect = new LongRectangle(0, 0, 
-                    bottomRight.getRawDeltaX(topLeft), bottomRight.getRawDeltaY(topLeft));
-            for (ServerMonster monster : monsters) {
+            if (!topLeft.equals(bottomRight)) {
                 /*
-                 *  We need the playerRect to be offset based on the difference 
-                 *  between it and the attacking player's location.  Otherwise
-                 *  we will fail to detect a collision at (0, 0) where the world
-                 *  wraps around.
+                 *  We now have the topLeft and bottomRight coords of our rectangle.
+                 *  Using this, we need to grab every player in our rectangle for collision
+                 *  testing.
                  */
-                if (monster.isAlive() && !monster.getCurrent().isInvincible()) {
-                    monster.update();
-                    LongRectangle playerRect = new LongRectangle(monster.getLocation().getRawDeltaX(topLeft), 
-                            monster.getLocation().getRawDeltaY(topLeft),
-                            collisionWidth * Location.BLOCK_GRANULARITY / WorldConstants.WORLD_BLOCK_WIDTH,
-                            collisionHeight * Location.BLOCK_GRANULARITY / WorldConstants.WORLD_BLOCK_HEIGHT);
-                    if (playerRect.intersects(collisionRect)) {
-                        int xOff = 0;
-                        if (direction == Direction.RIGHT) {
-                            xOff = (int) ((monster.getLocation().getRawDeltaX(this.location) * WorldConstants.WORLD_BLOCK_WIDTH / Location.BLOCK_GRANULARITY) - horizontalOffset - collisionArc[curIndex].getXOffset());
-                        } else {
-                            xOff = (int) (current.getWidth() - (this.location.getRawDeltaX(monster.getLocation()) * WorldConstants.WORLD_BLOCK_WIDTH / Location.BLOCK_GRANULARITY + getWidth() - horizontalOffset + collisionArc[curIndex].getFlipped().getXOffset()));
+                List<ServerMonster> monsters = World.getInstance().getNearbyMonsters(location);
+                LongRectangle collisionRect = new LongRectangle(0, 0, 
+                        bottomRight.getRawDeltaX(topLeft), bottomRight.getRawDeltaY(topLeft));
+                for (ServerMonster monster : monsters) {
+                    /*
+                     *  We need the playerRect to be offset based on the difference 
+                     *  between it and the attacking player's location.  Otherwise
+                     *  we will fail to detect a collision at (0, 0) where the world
+                     *  wraps around.
+                     */
+                    if (monster.isAlive() && !monster.getCurrent().isInvincible()) {
+                        monster.update();
+                        LongRectangle playerRect = new LongRectangle(monster.getLocation().getRawDeltaX(topLeft), 
+                                monster.getLocation().getRawDeltaY(topLeft),
+                                monster.getWidth() * Location.BLOCK_GRANULARITY / WorldConstants.WORLD_BLOCK_WIDTH,
+                                monster.getHeight() * Location.BLOCK_GRANULARITY / WorldConstants.WORLD_BLOCK_HEIGHT);
+                        if (playerRect.intersects(collisionRect)) {
+                            int xOff = 0;
+                            if (direction == Direction.RIGHT) {
+                                xOff = (int) ((monster.getLocation().getRawDeltaX(this.location) * WorldConstants.WORLD_BLOCK_WIDTH / Location.BLOCK_GRANULARITY) - horizontalOffset - collisionArc[curIndex].getXOffset());
+                            } else {
+                                xOff = (int) (current.getWidth() - (this.location.getRawDeltaX(monster.getLocation()) * WorldConstants.WORLD_BLOCK_WIDTH / Location.BLOCK_GRANULARITY + getWidth() - horizontalOffset + collisionArc[curIndex].getFlipped().getXOffset()));
+                            }
+                            int yOff = (int) ((monster.getLocation().getRawDeltaY(this.location) * WorldConstants.WORLD_BLOCK_HEIGHT / Location.BLOCK_GRANULARITY - verticalOffset - collisionArc[curIndex].getYOffset()));
+                            float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
+                                    new Rectangle(monster.getWidth(), monster.getHeight()), xOff, yOff);
+                            int multipliedDamage = (int)Math.round(getPvMDamageMultiplier() * damage);
+                            monster.damage(this, multipliedDamage);
                         }
-                        int yOff = (int) ((monster.getLocation().getRawDeltaY(this.location) * WorldConstants.WORLD_BLOCK_HEIGHT / Location.BLOCK_GRANULARITY - verticalOffset - collisionArc[curIndex].getYOffset()));
-                        float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
-                                new Rectangle(collisionWidth, collisionHeight), xOff, yOff);
-                        int multipliedDamage = (int)Math.round(getPvMDamageMultiplier() * damage);
-                        monster.damage(this, multipliedDamage);
                     }
                 }
             }
-            
         } while (curIndex != endingIndex);
     }
     
@@ -403,6 +397,25 @@ public class ServerPlayer extends Player {
             setHpCurrent(hpCurrent - damageDealt);
         }
         client.broadcast(this, PacketCreator.getPvPPlayerDamaged(source, this, damageDealt, hpCurrent));
+    }
+    
+    /**
+     * Damages the player, reducing their HP by the amount given.  Does not
+     * reduce HP below 0.  Passing in a negative value for 
+     * <code>damageDealt</code> will result in nothing happening.  This
+     * method sends packets to nearby players when there is a change in the
+     * player's HP.
+     * @param source The source of the damage.
+     * @param damageDealt The amount of damage dealt.
+     */
+    public void damage(int damageDealt) {
+        if (damageDealt <= 0) {
+            return;
+        }
+        synchronized (this) {
+            setHpCurrent(hpCurrent - damageDealt);
+        }
+        client.broadcast(this, PacketCreator.getPlayerDamaged(this, damageDealt, hpCurrent));
     }
 
     /**
@@ -723,11 +736,15 @@ public class ServerPlayer extends Player {
      */
     public void revive() {
         if (!isAlive()) {
-            setHpCurrent(getHpMax());
-            location.setRawX(0);
-            location.setRawY(0);
-            accelerateDown(100000, 100f, 100f);
-            update(100000);
+            synchronized (this) {
+                setHpCurrent(getHpMax());
+                location.setRawX(0);
+                location.setRawY(0);
+                current = new SwordIdle(this, current);
+                accelerateDown(100000, 100f, 100f);
+                update(100000);
+            }
+            client.announce(PacketCreator.getRevive(this));
         }
     }
 }

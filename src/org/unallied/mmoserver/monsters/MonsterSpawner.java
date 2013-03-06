@@ -157,7 +157,7 @@ public class MonsterSpawner {
         if (nearbyMonsters < 5) {
             spawnChance *= 3;
         }
-        spawnChance /= 7; // Spawn chance is too high, so let's lower it.  A lot.
+        spawnChance /= 4; // Spawn chance is too high, so let's lower it.  A lot.
         
         if (random.nextFloat() < spawnChance && nearbyMonsters < NEARBY_MONSTER_MAX) {
             // We should spawn a monster.

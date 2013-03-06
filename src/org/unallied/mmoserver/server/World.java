@@ -672,6 +672,9 @@ public class World {
                 long chunkId = getChunkId(monster.getLocation());
                 if (monsters.containsKey(chunkId)) {
                     monsters.get(chunkId).remove(monster.getId());
+                    // Broadcast the deletion of this monster
+                    Server.getInstance().localBroadcast(monster.getLocation(), 
+                            PacketCreator.getMonsterDamaged(null, monster, 0, 0));
                     
                     // No more monsters in this chunk.  Removing chunk to save space.
                     if (monsters.get(chunkId).size() == 0) {

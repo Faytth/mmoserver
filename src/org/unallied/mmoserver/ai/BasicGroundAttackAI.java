@@ -23,12 +23,16 @@ public class BasicGroundAttackAI implements AI {
     
     private long attackCooldown = 0;
     
+    private long jumpCooldown = 0;
+    
     Random random = new Random();
     
     @Override
     public void update(long delta) {
         attackCooldown -= delta;
         attackCooldown = attackCooldown < 0 ? 0 : attackCooldown;
+        jumpCooldown   -= delta;
+        jumpCooldown   = jumpCooldown < 0 ? 0 : jumpCooldown;
         
         try {
             ServerPlayer player = monster.getCurrentTarget();
@@ -89,7 +93,10 @@ public class BasicGroundAttackAI implements AI {
 
     @Override
     public boolean isMovingUp(Input input) {
-        // TODO Auto-generated method stub
+        if (jumpCooldown == 0) {
+            
+            return true;
+        }
         return false;
     }
 

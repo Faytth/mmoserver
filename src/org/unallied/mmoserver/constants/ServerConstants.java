@@ -15,7 +15,7 @@ public class ServerConstants {
     public static final String CONF_DB_PASS = "DB_PASS";
     
     /** The distance in pixels that an object can be from its target before it is removed. */
-    public static final double OBJECT_DESPAWN_DISTANCE = 2500;
+    public static final double OBJECT_DESPAWN_DISTANCE = 1100;
 
     /** This is the time in milliseconds that the server waits between global character saves. */
     public static final long SAVE_ALL_CHARACTERS_FREQUENCY = 60000;
@@ -34,4 +34,7 @@ public class ServerConstants {
      * maximum distance in pixels is {@link #MONSTER_SPAWNER_MIN_DISTANCE} + {@link #MONSTER_SPAWNER_DISTANCE}.
      */
     public static final int MONSTER_SPAWNER_DISTANCE = 500;
+    
+    /** The location of the server location for animations. */
+    public static final String SERVER_RESOURCE_ANIMATION_LOCATION = "resources/animations/";
 }

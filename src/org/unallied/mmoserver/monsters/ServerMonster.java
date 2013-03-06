@@ -1,5 +1,6 @@
 package org.unallied.mmoserver.monsters;
 
+import java.awt.Rectangle;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -7,6 +8,7 @@ import java.util.PriorityQueue;
 import java.util.Random;
 
 import org.unallied.mmocraft.BoundLocation;
+import org.unallied.mmocraft.CollisionBlob;
 import org.unallied.mmocraft.Direction;
 import org.unallied.mmocraft.Location;
 import org.unallied.mmocraft.LootIntf;
@@ -15,6 +17,8 @@ import org.unallied.mmocraft.Velocity;
 import org.unallied.mmocraft.animations.AnimationState;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.constants.ClientConstants;
+import org.unallied.mmocraft.constants.WorldConstants;
+import org.unallied.mmocraft.geom.LongRectangle;
 import org.unallied.mmocraft.items.Item;
 import org.unallied.mmocraft.monsters.Monster;
 import org.unallied.mmocraft.monsters.MonsterData;
@@ -50,7 +54,7 @@ public class ServerMonster extends Monster {
     /** The AI to use for this monster's controls. */
     protected AI ai;
     
-    public ServerMonster(ServerMonsterData data, int id, BoundLocation location) {
+    public ServerMonster(final ServerMonsterData data, int id, BoundLocation location) {
         super(data, id, location);
         try {
             this.ai = data.getAI().getClass().newInstance();
@@ -144,8 +148,13 @@ public class ServerMonster extends Monster {
             if (!aggro.isEmpty()) {
                 double distance = aggro.element().getPlayer().getLocation().getDistance(location);
                 // If player is too far away, remove them from aggro
-                if (distance >= ServerConstants.OBJECT_DESPAWN_DISTANCE) {
+                try {
+                    if (distance >= ServerConstants.OBJECT_DESPAWN_DISTANCE || !aggro.element().getPlayer().getClient().isLoggedIn()) {
+                        aggro.remove();
+                    }
+                } catch (Throwable t) {
                     aggro.remove();
+                    t.printStackTrace();
                 }
             }
             
@@ -431,5 +440,100 @@ public class ServerMonster extends Monster {
      */
     public ServerPlayer getCurrentTarget() throws NoSuchElementException {
         return aggro.element().getPlayer();
+    }
+    
+    /**
+     * Performs all checks needed to check whether a monster has hit a player.
+     * @param collisionArc
+     * @param startingIndex
+     * @param endingIndex
+     * @param horizontalOffset
+     * @param verticalOffset
+     */
+    private void performPlayerCollisions(CollisionBlob[] collisionArc, int startingIndex,
+            int endingIndex, float horizontalOffset, float verticalOffset) {
+        if (!this.isAlive()) {
+            return;
+        }
+        int curIndex = startingIndex - 1;
+        do {
+            curIndex = (curIndex + 1) % collisionArc.length;
+            
+            Location topLeft = new Location(this.location);
+            if (direction == Direction.RIGHT) {
+                topLeft.moveDown(verticalOffset + collisionArc[curIndex].getYOffset());
+                topLeft.moveRight(horizontalOffset + collisionArc[curIndex].getXOffset());
+            } else { // Flipped collision stuff.  This was such a pain to calculate.
+                topLeft.moveDown(verticalOffset + collisionArc[curIndex].getYOffset());
+                topLeft.moveRight(getWidth() - horizontalOffset - collisionArc[curIndex].getXOffset() - collisionArc[curIndex].getWidth());
+            }
+            Location bottomRight = new Location(topLeft);
+            bottomRight.moveDown(collisionArc[curIndex].getHeight());
+            bottomRight.moveRight(collisionArc[curIndex].getWidth());
+            
+            if (!topLeft.equals(bottomRight)) {
+                /*
+                 *  We now have the topLeft and bottomRight coords of our rectangle.
+                 *  Using this, we need to grab every player in our rectangle for collision
+                 *  testing.
+                 */
+                List<ServerPlayer> players = World.getInstance().getNearbyPlayers(location);
+                LongRectangle collisionRect = new LongRectangle(0, 0, 
+                        bottomRight.getRawDeltaX(topLeft), bottomRight.getRawDeltaY(topLeft));
+                for (ServerPlayer player : players) {
+                    /*
+                     *  We need the playerRect to be offset based on the difference 
+                     *  between it and the attacking player's location.  Otherwise
+                     *  we will fail to detect a collision at (0, 0) where the world
+                     *  wraps around.
+                     */
+                    if (player.isAlive() && !player.getCurrent().isInvincible()) {
+                        player.update();
+                        LongRectangle playerRect = new LongRectangle(player.getLocation().getRawDeltaX(topLeft), 
+                                player.getLocation().getRawDeltaY(topLeft),
+                                player.getWidth() * Location.BLOCK_GRANULARITY / WorldConstants.WORLD_BLOCK_WIDTH,
+                                player.getHeight() * Location.BLOCK_GRANULARITY / WorldConstants.WORLD_BLOCK_HEIGHT);
+                        if (playerRect.intersects(collisionRect)) {
+                            int xOff = 0;
+                            if (direction == Direction.RIGHT) {
+                                xOff = (int) ((player.getLocation().getRawDeltaX(this.location) * WorldConstants.WORLD_BLOCK_WIDTH / Location.BLOCK_GRANULARITY) - horizontalOffset - collisionArc[curIndex].getXOffset());
+                            } else {
+                                xOff = (int) (current.getWidth() - (this.location.getRawDeltaX(player.getLocation()) * WorldConstants.WORLD_BLOCK_WIDTH / Location.BLOCK_GRANULARITY + getWidth() - horizontalOffset + collisionArc[curIndex].getFlipped().getXOffset()));
+                            }
+                            int yOff = (int) ((player.getLocation().getRawDeltaY(this.location) * WorldConstants.WORLD_BLOCK_HEIGHT / Location.BLOCK_GRANULARITY - verticalOffset - collisionArc[curIndex].getYOffset()));
+                            float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
+                                    new Rectangle(player.getWidth(), player.getHeight()), xOff, yOff);
+                            int multipliedDamage = (int)Math.round(getMonsterDamageMultiplier() * damage);
+                            player.damage(multipliedDamage);
+                            player.addExperience(SkillType.CONSTITUTION, 
+                                    player.getHpCurrent() > multipliedDamage ? (int) (multipliedDamage * 0.25) :
+                                    (int) (player.getHpCurrent() * 0.25));
+                        }
+                    }
+                }
+            }
+            
+        } while (curIndex != endingIndex);
+    }
+    
+    public double getMonsterDamageMultiplier() {
+        return data.getDamageMultiplier() * (1000.0 + data.getLevel() * 150.0);
+    }
+    
+    @Override
+    public void doCollisionChecks(CollisionBlob[] collisionArc, int startingIndex,
+            int endingIndex, float horizontalOffset, float verticalOffset) {
+        // Guard
+        if (collisionArc == null || startingIndex < 0 || endingIndex < 0 || 
+                startingIndex >= collisionArc.length || endingIndex >= collisionArc.length) {
+            return;
+        }
+    
+        try {
+            update();
+            performPlayerCollisions(collisionArc, startingIndex, endingIndex, horizontalOffset, verticalOffset);
+        } catch (Exception e) {
+            e.printStackTrace(); // This should never happen.
+        }
     }
 }

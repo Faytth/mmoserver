@@ -1,15 +1,11 @@
 package org.unallied.mmoserver.net.handlers;
 
-import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.Direction;
-import org.unallied.mmocraft.Velocity;
-import org.unallied.mmocraft.animations.AnimationID;
 import org.unallied.mmocraft.tools.Authenticator;
 import org.unallied.mmocraft.tools.input.SeekableLittleEndianAccessor;
 import org.unallied.mmoserver.client.Client;
 import org.unallied.mmoserver.net.PacketCreator;
 import org.unallied.mmoserver.server.ServerPlayer;
-import org.unallied.mmoserver.server.World;
 
 public class PlayerDirectionHandler extends AbstractServerPacketHandler {
     

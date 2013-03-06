@@ -110,6 +110,7 @@ public class Client {
                 Server.getInstance().getDatabase().savePlayer(player);
             }
         } finally {
+            setLoggedIn(false);
             player = null;
             System.out.println("Player was disconnected.  Closing connection for: " + session.getRemoteAddress());
             session.close(false);

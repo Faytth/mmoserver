@@ -11,6 +11,7 @@ import org.unallied.mmocraft.monsters.MonsterType;
 import org.unallied.mmocraft.tools.input.GenericSeekableLittleEndianAccessor;
 import org.unallied.mmocraft.tools.output.GenericLittleEndianWriter;
 import org.unallied.mmoserver.ai.AI;
+import org.unallied.mmoserver.constants.ServerConstants;
 import org.unallied.mmoserver.loot.Loot;
 
 public class ServerMonsterData implements MonsterData {
@@ -110,6 +111,7 @@ public class ServerMonsterData implements MonsterData {
         writer.write((byte)animations.size());
         for (Map.Entry<AnimationType, String> animation : animations.entrySet()) {
             writer.writeShort(animation.getKey().getValue());
+            // TODO:  If the client and server disagree on the resource location, this will mess up.
             writer.write7BitPrefixedAsciiString(animation.getValue());
         }
         
@@ -162,7 +164,7 @@ public class ServerMonsterData implements MonsterData {
             int count = slea.readByte();
             for (int i=0; i < count; ++i) {
                 AnimationType type = AnimationType.fromValue(slea.readShort());
-                String animationLocation = slea.read7BitPrefixedAsciiString();
+                String animationLocation = ServerConstants.SERVER_RESOURCE_ANIMATION_LOCATION + slea.read7BitPrefixedAsciiString();
                 result.getAnimations().put(type, animationLocation);
             }
             // Add any animations that must be present but are missing

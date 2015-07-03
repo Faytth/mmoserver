@@ -34,11 +34,12 @@ public class MonsterSpawner {
      */
     private static final int NEARBY_MONSTER_MAX = 30;
     
+    private static Object lastMonsterIdMutex = new Object();
     /** 
      * The id of the last monster that was created.  This should increase by
      * one each time a new monster is created and loop back to 1 when needed.
      */
-    private static Integer lastMonsterId = 0;
+    private static int lastMonsterId = 0;
     
     /** 
      * The milliseconds towards the next spawn.  Monsters only have a chance 
@@ -97,7 +98,7 @@ public class MonsterSpawner {
      * @return
      */
     public int getNewMonsterId() {
-        synchronized (lastMonsterId) {
+        synchronized (lastMonsterIdMutex) {
             if (lastMonsterId == Integer.MAX_VALUE) {
                 lastMonsterId = 0;
             }
@@ -143,7 +144,7 @@ public class MonsterSpawner {
      * @param player The player to possibly spawn a monster around.
      */
     private void attemptToSpawnMonster(ServerPlayer player) {
-        if (player == null) { // Guard
+        if (player == null || !player.isAlive()) { // Guard
             return;
         }
         

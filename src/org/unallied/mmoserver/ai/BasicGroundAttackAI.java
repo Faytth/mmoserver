@@ -17,7 +17,7 @@ public class BasicGroundAttackAI implements AI {
      * The maximum distance along the x axis between the player and monster
      * before the monster pursues the player.
      */
-    private transient final int MAX_X_DISTANCE = 26;
+    private int maxXDistance = 5;
     
     private ServerMonster monster = null;
     
@@ -26,6 +26,10 @@ public class BasicGroundAttackAI implements AI {
     private long jumpCooldown = 0;
     
     Random random = new Random();
+    
+    public BasicGroundAttackAI() {
+        maxXDistance += (random.nextInt() % 5) - 2; // Prevent monsters from all standing on one spot
+    }
     
     @Override
     public void update(long delta) {
@@ -71,7 +75,7 @@ public class BasicGroundAttackAI implements AI {
             ServerPlayer player = monster.getCurrentTarget();
             double deltaX = player.getLocation().getDeltaX(monster.getLocation());
 
-            return (deltaX < -player.getWidth() - MAX_X_DISTANCE || (monster.getDirection() == Direction.RIGHT && deltaX < -50));
+            return (deltaX < -player.getWidth() - maxXDistance || (monster.getDirection() == Direction.RIGHT && deltaX < -50));
         } catch (NoSuchElementException e) {
             World.getInstance().removeMonster(monster);
         }
@@ -84,7 +88,7 @@ public class BasicGroundAttackAI implements AI {
             ServerPlayer player = monster.getCurrentTarget();
             double deltaX = player.getLocation().getDeltaX(monster.getLocation());
 
-            return (deltaX > player.getWidth() / 2 + MAX_X_DISTANCE || (monster.getDirection() == Direction.LEFT && deltaX > 50));
+            return (deltaX > player.getWidth() / 2 + maxXDistance || (monster.getDirection() == Direction.LEFT && deltaX > 50));
         } catch (NoSuchElementException e) {
             World.getInstance().removeMonster(monster);
         }

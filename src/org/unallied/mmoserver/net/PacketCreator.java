@@ -2,6 +2,7 @@ package org.unallied.mmoserver.net;
 
 import java.util.Collection;
 
+import org.iq80.snappy.Snappy;
 import org.unallied.mmocraft.BlockType;
 import org.unallied.mmocraft.Player;
 import org.unallied.mmocraft.constants.WorldConstants;
@@ -113,7 +114,7 @@ public class PacketCreator {
         
         writer.write(RecvOpcode.CHUNK);
         writer.writeLong(chunkId);
-        writer.write(World.getInstance().getChunk(chunkId));
+        writer.write(Snappy.compress(World.getInstance().getChunk(chunkId)));
         
         return writer.getPacket();
     }

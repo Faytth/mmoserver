@@ -133,49 +133,49 @@
         </sequential>
 <!--
         <sequential>
-            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/jinput.jar"/>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/jinput.jar"/>
             <signjar
-                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/jinput.jar"
+                jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/jinput.jar"
                 alias="Faythless"
                 storepass="Oq1rvn7t0"
                 keystore="C:/Users/Alexandria/.keystore"/>
         </sequential>
         <sequential>
-            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/windows_natives.jar"/>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/windows_natives.jar"/>
             <signjar
-                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/windows_natives.jar"
+                jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/windows_natives.jar"
                 alias="Faythless"
                 storepass="Oq1rvn7t0"
                 keystore="C:/Users/Alexandria/.keystore"/>
         </sequential>
         <sequential>
-            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/linux_natives.jar"/>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/linux_natives.jar"/>
             <signjar
-                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/linux_natives.jar"
+                jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/linux_natives.jar"
                 alias="Faythless"
                 storepass="Oq1rvn7t0"
                 keystore="C:/Users/Alexandria/.keystore"/>
         </sequential>
         <sequential>
-            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/macosx_natives.jar"/>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/macosx_natives.jar"/>
             <signjar
-                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/macosx_natives.jar"
+                jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/macosx_natives.jar"
                 alias="Faythless"
                 storepass="Oq1rvn7t0"
                 keystore="C:/Users/Alexandria/.keystore"/>
         </sequential>
         <sequential>
-            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/lwjgl_util_applet.jar"/>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/lwjgl_util_applet.jar"/>
             <signjar
-                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/lwjgl_util_applet.jar"
+                jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/lwjgl_util_applet.jar"
                 alias="Faythless"
                 storepass="Oq1rvn7t0"
                 keystore="C:/Users/Alexandria/.keystore"/>
         </sequential>
         <sequential>
-            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/lwjgl_util.jar"/>
+            <unsignjar jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/lwjgl_util.jar"/>
             <signjar
-                jar="C:/Users/Alexandria/workspace/unallied.com/mmocraft/lwjgl_util.jar"
+                jar="C:/Users/Alexandria/workspace/unallied.com/meleecraft/lwjgl_util.jar"
                 alias="Faythless"
                 storepass="Oq1rvn7t0"
                 keystore="C:/Users/Alexandria/.keystore"/>
@@ -183,7 +183,7 @@
 -->
         <delete dir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
         <mkdir dir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
-        <copy file="C:/Users/Alexandria/workspace/unallied.com/mmocraft/mmocraft.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
+        <copy file="C:/Users/Alexandria/workspace/unallied.com/meleecraft/mmocraft.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
         <copy file="C:/Users/Alexandria/git/mmocraft/lib/phys2d.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
         <copy file="C:/Users/Alexandria/git/mmocraft/lib/jogg-0.0.7.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>
         <copy file="C:/Users/Alexandria/git/mmocraft/lib/jorbis-0.0.15.jar" todir="C:/Users/Alexandria/workspace/unallied.com MMOServer/mmoserver/lib"/>

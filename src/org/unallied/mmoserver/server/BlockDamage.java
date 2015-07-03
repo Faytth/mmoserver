@@ -113,9 +113,22 @@ public class BlockDamage {
     }
     
     /**
+     * Clears all damage from the block at <code>point</code>.
+     * 
+     * @param point The x,y coordinate of the block.  Each block is 1 unit.
+     *              Top-left corner is (0, 0).
+     */
+    public void clearDamage(RawPoint point) {
+        if (point == null) { // Guard
+            return;
+        }
+        blockDamageMap.remove(point);
+    }
+    
+    /**
      * Deals damage to a block at <code>point</code>.
      * @param point The x,y coordinate of the block.  Each block is 1 unit.
-     *              Top-left corner is (0,0).
+     *              Top-left corner is (0, 0).
      * @param playerId The id of the player doing the damage.
      * @param damage The amount of damage dealt.
      * @param block A copy of the block receiving the damage.

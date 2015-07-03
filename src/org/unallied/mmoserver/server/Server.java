@@ -103,6 +103,7 @@ public class Server {
             System.out.println("Successfully loaded server property file.");
         } catch (Throwable t) {
             System.err.println("Unable to load server property file: " + t.getMessage());
+            t.printStackTrace();
         }
     }
         
@@ -256,10 +257,12 @@ public class Server {
             try {
                 p.getClient().announce(packet);
             } catch (NullPointerException e) {
-                if (p != null && p.getClient() != null) {
-                    logout(p.getClient());
-                } else {
-                    players.remove(p.getId());
+                if (p != null) {
+                    if (p.getClient() != null) {
+                        logout(p.getClient());
+                    } else {
+                        players.remove(p.getId());
+                    }
                 }
             }
         }

@@ -52,6 +52,9 @@ public class World {
      *  All of the blocks in the world.
      */
     private byte[][] blocks = new byte[(int)WorldConstants.WORLD_WIDTH][(int)WorldConstants.WORLD_HEIGHT];
+
+    /** Chunk objects to be used in synchronization (e.g. when changing a block). */
+    private Object[][] chunks;
     
     /**
      *  We will use regions to modify Perlin noise variables for world generation.
@@ -75,6 +78,12 @@ public class World {
     private HashMap<Long, HashMap<Integer, ServerMonster>> monsters = new HashMap<Long, HashMap<Integer, ServerMonster>>();
     
     private World() {
+        chunks = new Object[(int)WorldConstants.WORLD_CHUNKS_WIDE][(int)WorldConstants.WORLD_CHUNKS_TALL];
+        for (int i=0; i < chunks.length; ++i) {
+            for (int j=0; j < chunks[i].length; ++j) {
+                chunks[i][j] = new Object();
+            }
+        }
     }
     
     private static class WorldHolder {
@@ -312,6 +321,46 @@ public class World {
     }
     
     /**
+     * Returns an object representing the chunk.  This can be used in
+     * synchronization.  The object does not contain any information about the
+     * chunk.  If you need a chunk's information, use {@link World#getChunk(long)}.
+     * @param location The location containing this chunk.
+     * @return chunkObject
+     */
+    public Object getChunkObject(Location location) {
+        return getChunkObject(getChunkId(location));
+    }
+    
+    /**
+     * Returns an object representing the chunk.  This can be used in
+     * synchronization.  The object does not contain any information about the
+     * chunk.  If you need a chunk's information, use {@link World#getChunk(long)}.
+     * @param chunkId The id of the chunk object we're retrieving.
+     * @return chunkObject
+     */
+    public Object getChunkObject(long chunkId) {
+        
+        int x = (int) ((chunkId << 32) >> 32);
+        int y = (int) (chunkId >> 32);
+        
+        return getChunkObject(x, y);
+    }
+    
+    /**
+     * Returns an object representing the chunk.  This can be used in
+     * synchronization.  The object does not contain any information about the
+     * chunk.  If you need a chunk's information, use {@link World#getChunk(int, int)}.
+     * @param x The chunk's x coordinate.  The units for this coordinate
+     * are the number of chunks from the left.
+     * @param y The chunk's y coordinate.  The units for this coordinate
+     * are the number of chunks from the top.
+     * @return chunkObject
+     */
+    public Object getChunkObject(int x, int y) {
+        return chunks[x][y];
+    }
+    
+    /**
      * Returns the blocks in a byte[] that make up a given chunk.
      * chunkId is defined as (y << 32) | x
      * @return blocks of a chunk
@@ -351,7 +400,7 @@ public class World {
             }
             
             return result;
-        } catch (Throwable t) {
+        } catch (NullPointerException e) {
             // This shouldn't happen, because blocks should be assigned, but just incase
             return null;
         }
@@ -393,14 +442,38 @@ public class World {
      * @param y The y coordinate of the block
      * @return block, or null if there was an error.
      */
-    public Block getBlock(long x, long y) {
+    public Block getBlock(int x, int y) {
         x = x >= 0 ? x % WorldConstants.WORLD_WIDTH : WorldConstants.WORLD_WIDTH + x;
         y = y >= 0 ? y : 0;
         y = y >= WorldConstants.WORLD_HEIGHT ? WorldConstants.WORLD_HEIGHT - 1 : y;
         try {
-            return BlockType.fromValue(blocks[(int) (x)][(int) (y)]).getBlock();
+            return BlockType.fromValue(blocks[x][y]).getBlock();
         } catch (NullPointerException e) {
             return null;
+        }
+    }
+    
+    /**
+     * Sets a block at the given location.  This method does NOT check to see
+     * whether or not the block at the given location should be replaceable.
+     * It simply replaces it and deletes and "block damage" at the given location.
+     * 
+     * @param location The location of the block to place
+     * @param type The type of block that we're changing to.
+     */
+    public void setBlock(BoundLocation location, BlockType type) {
+        if (location == null || type == null) { // Guard
+            return;
+        }
+        int x = location.getX();
+        int y = location.getY();
+        blockDamage.clearDamage(new RawPoint(x, y));
+        if (blocks[x][y] != type.getValue()) {
+            blocks[x][y] = type.getValue();
+            
+            // Tell all nearby players that the block has changed.
+            Server.getInstance().localBroadcast(location,
+                    PacketCreator.getBlockChanged(x, y, type));
         }
     }
     
@@ -414,8 +487,9 @@ public class World {
      * @param damage The amount of damage dealt to the block.
      * @return True if the block has broken, else false.
      */
-    public void doDamage(int playerId, long x, long y, long damage) {
-        x = x >= 0 ? x % WorldConstants.WORLD_WIDTH : WorldConstants.WORLD_WIDTH + x;
+    public void doDamage(int playerId, int x, int y, long damage) {
+        x = x >= 0 ? x % WorldConstants.WORLD_WIDTH 
+                : WorldConstants.WORLD_WIDTH + x;
         y = y >= 0 ? y: 0;
         y = y >= WorldConstants.WORLD_HEIGHT ? WorldConstants.WORLD_HEIGHT - 1 : y;
     	RawPoint point = new RawPoint(x, y);
@@ -443,28 +517,28 @@ public class World {
         
         // Get all chunks around this location
         // NOTE: This breaks down if the world is abnormally small
-        long x = location.getX();
-        long y = location.getY();
+        int x = location.getX();
+        int y = location.getY();
         
-        long maxX = WorldConstants.WORLD_CHUNKS_WIDE;
-        long maxY = WorldConstants.WORLD_CHUNKS_TALL;
+        int maxX = WorldConstants.WORLD_CHUNKS_WIDE;
+        int maxY = WorldConstants.WORLD_CHUNKS_TALL;
         
         x /= WorldConstants.WORLD_CHUNK_WIDTH;
         y /= WorldConstants.WORLD_CHUNK_HEIGHT;
         
         readLock.lock();
         try {
-            for (int i=0; i < length; ++i) { // rows
-                for (int j=0; j < length; ++j) { // columns
+            for (int i = 0; i < length; ++i) { // rows
+                for (int j = 0; j < length; ++j) { // columns
                     // (y << 32) | x
-                    int chunkX = (int) ((x+i-radius) % maxX);
-                    int chunkY = (int) (y+j-radius);
+                    int chunkX = (x + i - radius) % maxX;
+                    int chunkY = y + j - radius;
                     
                     // Make sure we don't get negative coordinates
-                    chunkX = (int) (chunkX < 0 ? maxX+chunkX : chunkX);
-                    chunkY = (int) (chunkY < 0    ? 0 : 
-                                    chunkY > maxY ? maxY :
-                                                    chunkY);
+                    chunkX = chunkX < 0 ? maxX + chunkX : chunkX;
+                    chunkY = chunkY < 0 ? 0 : 
+                                     chunkY > maxY ? maxY :
+                                             chunkY;
                     
                     long chunkId = ((long) (chunkY) << 32) | chunkX;
                     
@@ -494,11 +568,11 @@ public class World {
         
         // Get all chunks around this location
         // NOTE: This breaks down if the world is abnormally small
-        long x = location.getX();
-        long y = location.getY();
+        int x = location.getX();
+        int y = location.getY();
         
-        long maxX = WorldConstants.WORLD_CHUNKS_WIDE;
-        long maxY = WorldConstants.WORLD_CHUNKS_TALL;
+        int maxX = WorldConstants.WORLD_CHUNKS_WIDE;
+        int maxY = WorldConstants.WORLD_CHUNKS_TALL;
         
         x /= WorldConstants.WORLD_CHUNK_WIDTH;
         y /= WorldConstants.WORLD_CHUNK_HEIGHT;
@@ -508,14 +582,14 @@ public class World {
             for (int i=0; i < length; ++i) { // rows
                 for (int j=0; j < length; ++j) { // columns
                     // (y << 32) | x
-                    int chunkX = (int) ((x+i-radius) % maxX);
-                    int chunkY = (int) (y+j-radius);
+                    int chunkX = (x+i-radius) % maxX;
+                    int chunkY = y+j-radius;
                     
                     // Make sure we don't get negative coordinates
-                    chunkX = (int) (chunkX < 0 ? maxX+chunkX : chunkX);
-                    chunkY = (int) (chunkY < 0    ? 0 : 
-                                    chunkY > maxY ? maxY :
-                                                    chunkY);
+                    chunkX = chunkX < 0 ? maxX+chunkX : chunkX;
+                    chunkY = chunkY < 0 ? 0 : 
+                                     chunkY > maxY ? maxY :
+                                             chunkY;
                     
                     long chunkId = ((long) (chunkY) << 32) | chunkX;
                     
@@ -591,6 +665,8 @@ public class World {
                 }
                 monsters.get(chunkId).put(monster.getId(), monster);
             } catch (NullPointerException e) {
+                System.out.println("monsters.get(chunkId) == " + 
+                        monsters.get(getChunkId(monster.getLocation())) == null ? "null" : "not null");
                 e.printStackTrace();
             } finally {
                 writeLock.unlock();
@@ -672,6 +748,7 @@ public class World {
                 long chunkId = getChunkId(monster.getLocation());
                 if (monsters.containsKey(chunkId)) {
                     monsters.get(chunkId).remove(monster.getId());
+                    
                     // Broadcast the deletion of this monster
                     Server.getInstance().localBroadcast(monster.getLocation(), 
                             PacketCreator.getMonsterDamaged(null, monster, 0, 0));
@@ -763,10 +840,10 @@ public class World {
      */
     public Location collideWithBlock(Location end, Location end2) {
         Location specialEnd = new Location(end2); // used for sub-pixel checks
-        long x0 = end.getX();
-        long y0 = end.getY();
-        long x1;
-        long y1;
+        int x0 = end.getX();
+        int y0 = end.getY();
+        int x1;
+        int y1;
 
         // Special check for sub-pixels
         // In order for "jitter" to occur, start and end must be the same block
@@ -787,7 +864,7 @@ public class World {
         y1 = specialEnd.getY();
         
         boolean steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
-        long tmp;
+        int tmp;
         if (steep) {
             tmp = x0;
             x0 = y0;
@@ -797,18 +874,18 @@ public class World {
             x1 = y1;
             y1 = tmp;
         }
-        long deltax = Math.abs(x1 - x0);
-        long deltay = Math.abs(y1 - y0);
-        long error  = deltax / 2;
-        long ystep;
-        long y = y0;
+        int deltax = Math.abs(x1 - x0);
+        int deltay = Math.abs(y1 - y0);
+        int error  = deltax / 2;
+        int ystep;
+        int y = y0;
         if (y0 < y1) {
             ystep = 1;
         } else {
             ystep = -1;
         }
         
-        long inc;
+        int inc;
         if (x0 < x1) {
             inc = 1;
         } else {
@@ -817,14 +894,14 @@ public class World {
         // We want to ignore starting position.  Return if we get a solid block
         // TODO:  Should we allow collisions on our current block?
         boolean isLast = false;
-        for (long x=x0; x != x1 || isLast; x+=inc) {
+        for (int x=x0; x != x1 || isLast; x+=inc) {
             if (steep) {
-                Block b = getBlock(y,x);
+                Block b = getBlock(y, x);
                 if (b == null || b.isCollidable()) {
                     return getMaxLocation(end, end2, new BoundLocation(y,x));
                 }
             } else {
-                Block b = getBlock(x,y);
+                Block b = getBlock(x, y);
                 if (b == null || b.isCollidable()) {
                     return getMaxLocation(end, end2, new BoundLocation(x,y));
                 }
@@ -863,8 +940,8 @@ public class World {
             return 0;
         }
         
-        int rx = (int) (location.getX() / WorldConstants.WORLD_CHUNK_WIDTH / WorldConstants.WORLD_REGION_WIDTH);
-        int ry = (int) (location.getY() / WorldConstants.WORLD_CHUNK_HEIGHT / WorldConstants.WORLD_REGION_HEIGHT);
+        int rx = location.getX() / WorldConstants.WORLD_CHUNK_WIDTH / WorldConstants.WORLD_REGION_WIDTH;
+        int ry = location.getY() / WorldConstants.WORLD_CHUNK_HEIGHT / WorldConstants.WORLD_REGION_HEIGHT;
         if (rx >= 0 && ry >= 0 && regions.length > rx && regions[rx].length > ry) {
             return regions[rx][ry].getSpawnChance();
         }
@@ -885,7 +962,7 @@ public class World {
             return 0;
         }
         
-        int difficultyX = (int) ((WorldConstants.WORLD_WIDTH / 2) - location.getX());
+        int difficultyX = (WorldConstants.WORLD_WIDTH / 2) - location.getX();
         difficultyX = difficultyX < 0 ? -difficultyX : difficultyX;
         difficultyX = (int) (100.0 * ((WorldConstants.WORLD_WIDTH / 2.0 - difficultyX) / (WorldConstants.WORLD_WIDTH / 2.0)));
 
@@ -910,8 +987,8 @@ public class World {
     public ServerMonsterData getMonster(BoundLocation location) {
         int monsterDifficulty = getMonsterDifficulty(location);
         
-        int rx = (int) (location.getX() / WorldConstants.WORLD_CHUNK_WIDTH / WorldConstants.WORLD_REGION_WIDTH);
-        int ry = (int) (location.getY() / WorldConstants.WORLD_CHUNK_HEIGHT / WorldConstants.WORLD_REGION_HEIGHT);
+        int rx = location.getX() / WorldConstants.WORLD_CHUNK_WIDTH / WorldConstants.WORLD_REGION_WIDTH;
+        int ry = location.getY() / WorldConstants.WORLD_CHUNK_HEIGHT / WorldConstants.WORLD_REGION_HEIGHT;
         if (rx >= 0 && ry >= 0 && regions.length > rx && regions[rx].length > ry) {
             return regions[rx][ry].getMonster(monsterDifficulty);
         }

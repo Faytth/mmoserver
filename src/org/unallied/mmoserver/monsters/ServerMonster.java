@@ -36,10 +36,10 @@ public class ServerMonster extends Monster {
     
     /** The last time that this monster had its position updated. */
     private long lastUpdateTime = 0;
-    
+
     /** Used in calculation of gold that the player should receive. */
     private Random random = new Random();
-        
+
     /**
      * 
      */
@@ -47,7 +47,7 @@ public class ServerMonster extends Monster {
 
     private PriorityQueue<PlayerAggro> aggro = new PriorityQueue<PlayerAggro>(10, new Comparator<PlayerAggro>() {
             public int compare(PlayerAggro a, PlayerAggro b) {
-                return (int) (a.getThreat() - b.getThreat());
+                return (int) (b.getThreat() - a.getThreat());
             }
     });
     
@@ -61,10 +61,10 @@ public class ServerMonster extends Monster {
         } catch (Throwable t) {
             t.printStackTrace();
         }
-        this.ai.setMonster(this);
         if (this.ai == null) {
             throw new NullPointerException("Unable to instantiate instance of ServerMonster.  AI was null for monster data ID: " + data.getId());
         }
+        this.ai.setMonster(this);
     }
 
     /**
@@ -319,6 +319,7 @@ public class ServerMonster extends Monster {
                 for (PlayerAggro a : aggro) {
                     if (a.getPlayer().equals(player)) {
                         a.addThreat(threat);
+                        break;
                     }
                 }
             } else {
@@ -487,7 +488,7 @@ public class ServerMonster extends Monster {
                      *  we will fail to detect a collision at (0, 0) where the world
                      *  wraps around.
                      */
-                    if (player.isAlive() && !player.getCurrent().isInvincible()) {
+                    if (player.isAlive()) {
                         player.update();
                         LongRectangle playerRect = new LongRectangle(player.getLocation().getRawDeltaX(topLeft), 
                                 player.getLocation().getRawDeltaY(topLeft),
@@ -503,11 +504,30 @@ public class ServerMonster extends Monster {
                             int yOff = (int) ((player.getLocation().getRawDeltaY(this.location) * WorldConstants.WORLD_BLOCK_HEIGHT / Location.BLOCK_GRANULARITY - verticalOffset - collisionArc[curIndex].getYOffset()));
                             float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
                                     new Rectangle(player.getWidth(), player.getHeight()), xOff, yOff);
-                            int multipliedDamage = (int)Math.round(getMonsterDamageMultiplier() * damage);
-                            player.damage(multipliedDamage);
-                            player.addExperience(SkillType.CONSTITUTION, 
-                                    player.getHpCurrent() > multipliedDamage ? (int) (multipliedDamage * 0.25) :
-                                    (int) (player.getHpCurrent() * 0.25));
+                            int multipliedDamage = (int)Math.round(getMonsterDamageMultiplier() * damage * player.getDefenseMultiplier());
+                            if (player.getCurrent().isInvincible()) { // Player is invincible
+                                // Give player defense exp for being awesome.
+                                player.addExperience(SkillType.DEFENSE,
+                                        player.getHpCurrent() > multipliedDamage ? (int) (multipliedDamage * 1.0) :
+                                        (int) (player.getHpCurrent() * 1.0));
+                            } else { // Not invincible, so hurt the player
+                                if (player.getCurrent().isShielding()) { // Reduce damage if shielding
+                                    // Give player defense exp for being sort of awesome.
+                                    int damageShielded = (int) (multipliedDamage * 0.75);
+                                    if (damageShielded > 0) {
+                                        multipliedDamage -= damageShielded; // reduce damage taken
+                                        int expGained = player.getHpCurrent() > damageShielded ? (int) (damageShielded * 0.35) :
+                                            (int) (player.getHpCurrent() * 0.35);
+                                        expGained = expGained < 1 ? 1 : expGained;
+                                        player.addExperience(SkillType.DEFENSE, expGained);
+                                    }
+                                }
+                                player.damage(multipliedDamage);
+                                int expGain = player.getHpCurrent() > multipliedDamage ? (int) (multipliedDamage * 0.25) :
+                                    (int) (player.getHpCurrent() * 0.25);
+                                expGain = expGain < 1 ? 1 : expGain;
+                                player.addExperience(SkillType.CONSTITUTION, expGain);
+                            }
                         }
                     }
                 }
@@ -535,5 +555,115 @@ public class ServerMonster extends Monster {
         } catch (Exception e) {
             e.printStackTrace(); // This should never happen.
         }
+    }
+    
+    @Override
+    /**
+     * A wrapper for {@link BoundLocation#moveRawRight(long)}.  Use this instead
+     * of accessing location directly.  Otherwise you could break the server's
+     * ability to know where players and monsters are.
+     * @param x
+     */
+    public void moveRawRight(long x) {
+        BoundLocation newLocation = new BoundLocation(location);
+        newLocation.moveRawRight(x);
+        World.getInstance().moveMonster(this,  newLocation);
+        location = newLocation;
+    }
+    
+    @Override
+    /**
+     * A wrapper for {@link BoundLocation#moveRawDown(long)}.  Use this instead
+     * of accessing location directly.  Otherwise you could break the server's
+     * ability to know where players and monsters are.
+     * @param y
+     */
+    public void moveRawDown(long y) {
+        BoundLocation newLocation = new BoundLocation(location);
+        newLocation.moveRawDown(y);
+        World.getInstance().moveMonster(this,  newLocation);
+        location = newLocation;
+    }
+    
+    @Override
+    /**
+     * A wrapper for {@link BoundLocation#setRawX(long)}.  Use this instead
+     * of accessing location directly.  Otherwise you could break the server's
+     * ability to know where players and monsters are.
+     * @param x
+     */
+    public void setRawX(long x) {
+        BoundLocation newLocation = new BoundLocation(location);
+        newLocation.setRawX(x);
+        World.getInstance().moveMonster(this,  newLocation);
+        location = newLocation;
+    }
+    
+    @Override
+    /**
+     * A wrapper for {@link BoundLocation#setRawY(long)}.  Use this instead
+     * of accessing location directly.  Otherwise you could break the server's
+     * ability to know where players and monsters are.
+     * @param y
+     */
+    public void setRawY(long y) {
+        BoundLocation newLocation = new BoundLocation(location);
+        newLocation.setRawY(y);
+        World.getInstance().moveMonster(this,  newLocation);
+        location = newLocation;
+    }
+    
+    @Override
+    /**
+     * A wrapper for {@link BoundLocation#setXOffset(float)}.  Use this instead
+     * of accessing location directly.  Otherwise you could break the server's
+     * ability to know where players and monsters are.
+     * @param x
+     */
+    public void setXOffset(float x) {
+        BoundLocation newLocation = new BoundLocation(location);
+        newLocation.setXOffset(x);
+        World.getInstance().moveMonster(this,  newLocation);
+        location = newLocation;
+    }
+    
+    @Override
+    /**
+     * A wrapper for {@link BoundLocation#setYOffset(float)}.  Use this instead
+     * of accessing location directly.  Otherwise you could break the server's
+     * ability to know where players and monsters are.
+     * @param y
+     */
+    public void setYOffset(float y) {
+        BoundLocation newLocation = new BoundLocation(location);
+        newLocation.setYOffset(y);
+        World.getInstance().moveMonster(this,  newLocation);
+        location = newLocation;
+    }
+    
+    @Override
+    /**
+     * A wrapper for {@link BoundLocation#decrementX()}.  Use this instead
+     * of accessing location directly.  Otherwise you could break the server's
+     * ability to know where players and monsters are.
+     */
+    public void decrementX() {
+        BoundLocation newLocation = new BoundLocation(location);
+        newLocation.decrementX();
+        World.getInstance().moveMonster(this,  newLocation);
+        location = newLocation;
+    }
+    
+    @Override
+    /**
+     * A wrapper for {@link BoundLocation#decrementY()}.  Use this instead
+     * of accessing location directly.  Otherwise you could break the server's
+     * ability to know where players and monsters are.
+     */
+    public void decrementY() {
+        BoundLocation newLocation = new BoundLocation(location);
+        newLocation.decrementY();
+        World.getInstance().moveMonster(this,  newLocation);
+        location = newLocation;
     }
 }

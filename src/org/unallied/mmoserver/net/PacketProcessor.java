@@ -74,5 +74,7 @@ public class PacketProcessor {
         registerHandler(SendOpcode.MONSTER_INFO, new MonsterInfoHandler());
         registerHandler(SendOpcode.PLAYER_DIRECTION, new PlayerDirectionHandler());
         registerHandler(SendOpcode.REVIVE, new ReviveHandler());
+        registerHandler(SendOpcode.PLACE_BLOCK, new PlaceBlockHandler());
+        registerHandler(SendOpcode.SET_MINING, new SetMiningHandler());
     }
 }

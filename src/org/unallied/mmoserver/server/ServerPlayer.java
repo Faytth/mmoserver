@@ -3,6 +3,7 @@ package org.unallied.mmoserver.server;
 import java.awt.Rectangle;
 import java.util.List;
 
+import org.unallied.mmocraft.BlockType;
 import org.unallied.mmocraft.BoundLocation;
 import org.unallied.mmocraft.CollisionBlob;
 import org.unallied.mmocraft.Direction;
@@ -11,6 +12,7 @@ import org.unallied.mmocraft.Player;
 import org.unallied.mmocraft.RawPoint;
 import org.unallied.mmocraft.Velocity;
 import org.unallied.mmocraft.animations.AnimationState;
+import org.unallied.mmocraft.animations.generics.GenericShield;
 import org.unallied.mmocraft.animations.sword.SwordIdle;
 import org.unallied.mmocraft.blocks.Block;
 import org.unallied.mmocraft.constants.ClientConstants;
@@ -18,6 +20,9 @@ import org.unallied.mmocraft.constants.WorldConstants;
 import org.unallied.mmocraft.geom.LongRectangle;
 import org.unallied.mmocraft.items.Inventory;
 import org.unallied.mmocraft.items.Item;
+import org.unallied.mmocraft.items.ItemData;
+import org.unallied.mmocraft.items.ItemManager;
+import org.unallied.mmocraft.items.ItemType;
 import org.unallied.mmocraft.net.Packet;
 import org.unallied.mmocraft.skills.SkillType;
 import org.unallied.mmocraft.skills.Skills;
@@ -214,23 +219,27 @@ public class ServerPlayer extends Player {
                  *  Using this, we need to grab every block in our rectangle for collision
                  *  testing.
                  */
-                for (long x = topLeft.getX(); x <= bottomRight.getX(); ++x) {
-                    for (long y = topLeft.getY(); y <= bottomRight.getY(); ++y) {
-                        if (World.getInstance().getBlock(x, y).isCollidable()) {
-                            int xOff = 0;
-                            if (direction == Direction.RIGHT) {
-                                xOff = (int) (((x - this.location.getX()) * WorldConstants.WORLD_BLOCK_WIDTH - horizontalOffset - collisionArc[curIndex].getXOffset() - this.location.getXOffset()));
-                            } else {
-                                xOff = (int) (-this.location.getXOffset() + current.getWidth() - ((this.location.getX() - x) * WorldConstants.WORLD_BLOCK_WIDTH + getWidth() - horizontalOffset + collisionArc[curIndex].getFlipped().getXOffset()));
-                            }
-                            int yOff = (int) (((y - this.location.getY()) * WorldConstants.WORLD_BLOCK_HEIGHT - verticalOffset - collisionArc[curIndex].getYOffset() - this.location.getYOffset()));
-                            float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
-                                    new Rectangle(WorldConstants.WORLD_BLOCK_WIDTH, WorldConstants.WORLD_BLOCK_HEIGHT), xOff, yOff);
-                            if (damage > 0) {
-                                int multipliedDamage = (int)Math.round(getBlockDamageMultiplier() * damage);
-                                
-                                //if the block broke, tell everyone
-                                World.getInstance().doDamage(getId(), x, y, multipliedDamage);
+                for (int x = topLeft.getX(); x <= bottomRight.getX(); ++x) {
+                    for (int y = topLeft.getY(); y <= bottomRight.getY(); ++y) {
+                        int chunkX = x / WorldConstants.WORLD_CHUNK_WIDTH;
+                        int chunkY = y / WorldConstants.WORLD_CHUNK_HEIGHT; 
+                        synchronized (World.getInstance().getChunkObject(chunkX, chunkY)) {
+                            if (World.getInstance().getBlock(x, y).isCollidable()) {
+                                int xOff = 0;
+                                if (direction == Direction.RIGHT) {
+                                    xOff = (int) (((x - this.location.getX()) * WorldConstants.WORLD_BLOCK_WIDTH - horizontalOffset - collisionArc[curIndex].getXOffset() - this.location.getXOffset()));
+                                } else {
+                                    xOff = (int) (-this.location.getXOffset() + current.getWidth() - ((this.location.getX() - x) * WorldConstants.WORLD_BLOCK_WIDTH + getWidth() - horizontalOffset + collisionArc[curIndex].getFlipped().getXOffset()));
+                                }
+                                int yOff = (int) (((y - this.location.getY()) * WorldConstants.WORLD_BLOCK_HEIGHT - verticalOffset - collisionArc[curIndex].getYOffset() - this.location.getYOffset()));
+                                float damage =  (direction == Direction.RIGHT ? collisionArc[curIndex] : collisionArc[curIndex].getFlipped()).getDamage(
+                                        new Rectangle(WorldConstants.WORLD_BLOCK_WIDTH, WorldConstants.WORLD_BLOCK_HEIGHT), xOff, yOff);
+                                if (damage > 0) {
+                                    int multipliedDamage = (int)Math.round(getBlockDamageMultiplier() * damage);
+                                    
+                                    //if the block broke, tell everyone
+                                    World.getInstance().doDamage(getId(), x, y, multipliedDamage);
+                                }
                             }
                         }
                     }
@@ -603,6 +612,24 @@ public class ServerPlayer extends Player {
     }
     
     /**
+     * Removes an item from the player's inventory, notifying the client of the
+     * change if any changes occurred.
+     * @param itemId The id of the item being removed.
+     * @param quantity The number of items to remove.
+     * @return The number of items actually removed.
+     */
+    public long removeItem(int itemId, long quantity) {
+        long result = 0;
+        synchronized (this) {
+            result = inventory.removeItem(new Item(itemId), quantity);
+        }
+        client.announce(PacketCreator.getSetItem(itemId, 
+                inventory.getQuantity(itemId)));
+
+        return result;
+    }
+    
+    /**
      * Adds gold to the player's inventory, notifying the client of the change
      * if any changes occurred.  No changes are made if <code>gold</code> is <= 0.
      * @param gold The amount of gold to add.
@@ -738,13 +765,92 @@ public class ServerPlayer extends Player {
         if (!isAlive()) {
             synchronized (this) {
                 setHpCurrent(getHpMax());
-                location.setRawX(0);
-                location.setRawY(0);
+                setRawX(0);
+                setRawY(0);
                 current = new SwordIdle(this, current);
                 accelerateDown(100000, 100f, 100f);
                 update(100000);
             }
             client.announce(PacketCreator.getRevive(this));
+        }
+    }
+    
+    /**
+     * Retrieves whether the player is shielding.  Since we're the server, we
+     * just assume that the player is holding down the shield button until they
+     * tell us otherwise.
+     * @return true if the player is shielding, else false.
+     */
+    public boolean isShielding() {
+        return (current instanceof GenericShield);
+    }
+
+    /**
+     * Places a block with the given item ID at the location provided.  This
+     * method does nothing if the item ID is not that of a block or the location
+     * is invalid.
+     * @param itemId
+     * @param blockLocation
+     */
+    public void placeBlock(int itemId, BoundLocation blockLocation) {
+        if (itemId < 0 || blockLocation == null) { // Guard
+            return;
+        }
+        
+        synchronized (World.getInstance().getChunkObject(blockLocation)) {
+            Block block = World.getInstance().getBlock(blockLocation);
+            if (block != null) {
+                // If our block is air, then we can replace it
+                if (block.getType() == BlockType.AIR) { 
+                    ItemData itemData = ItemManager.getItemData(itemId);
+                    if (itemData.getType() == ItemType.BLOCKS) {
+                        long quantityRemoved = removeItem(itemId, 1);
+                        
+                        /*
+                         * If we removed an item from the player, then that means
+                         * they have the block they want to place, so we should
+                         * place it.
+                         */
+                        if (quantityRemoved > 0) {
+                            World.getInstance().setBlock(blockLocation, 
+                                    ItemManager.getBlockType(itemData.getId()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    @Override
+    /**
+     * Starts mining at the given location.
+     * @param location The location to mine at.
+     */
+    public void startMining(BoundLocation location) {
+        synchronized (this) {
+            isMining = true;
+            miningLocation = location;
+        }
+    }
+
+    @Override
+    /**
+     * Stops the player from mining.
+     */
+    public void stopMining() {
+        synchronized (this) {
+            isMining = false;
+        }
+    }
+    
+    @Override
+    /**
+     * Sets the location that the player is mining at.
+     * @param miningLocation The location to mine at.
+     */
+    public void setMiningLocation(BoundLocation miningLocation) {
+        synchronized (this) {
+            this.miningLocation = miningLocation;
         }
     }
 }

@@ -28,7 +28,7 @@ public class MovementHandler extends AbstractServerPacketHandler {
         // TODO:  Perform check to ensure that player isn't lying about their location
         // Tell the world that the player has moved
         BoundLocation location = BoundLocation.getLocation(slea);
-        if (location != null && p != null) {
+        if (location != null) {
             synchronized (client) {
                 World.getInstance().movePlayer(p, location);
                 p.setLocation(location);

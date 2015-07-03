@@ -1,10 +1,13 @@
 package org.unallied.mmoserver.monsters;
 
+import org.unallied.mmocraft.utils.HashCodeUtil;
 import org.unallied.mmoserver.server.ServerPlayer;
 
 public class PlayerAggro {
     private ServerPlayer player;
     private long threat;
+    
+    private transient int hashCodeValue = 0;
     
     public PlayerAggro(ServerPlayer player) {
         this(player, 1); // 1 threat is the lowest effective threat level.
@@ -40,6 +43,17 @@ public class PlayerAggro {
     public void setThreat(long threat) {
         threat = threat < 1 ? 1 : threat;
         this.threat = threat;
+    }
+    
+    @Override
+    public int hashCode() {
+        if (hashCodeValue == 0) {
+            int result = 0;
+            result = HashCodeUtil.hash(result, player);
+            hashCodeValue = result;
+        }
+        
+        return hashCodeValue;
     }
     
     public boolean equals(Object object) {
